@@ -21,39 +21,7 @@
 | Overtime Cost Ratio | Total OT Cost / Total Payroll Cost x 100 | < 3% | 3-5% | > 5% | Overtime Report, Payroll Cost Report |
 | Missing Time Entry Count | COUNT workers where CF_Missing_Time_Flag = True | 0 | 1-5 workers | > 5 workers | Missing Time Entries Report |
 | Deduction Failure Rate | Failed Deductions / Total Deductions x 100 | < 1% | 1-3% | > 3% | Deduction Exception Report, Payroll Results deduction detail |
-| Tax Exception Count | COUNT workers where CF_Tax_Exception != None | 0 | 1-3 workers | > 3 workers | Tax Exception Report |
-| Days to Payroll Deadline | Payroll Approval Date - Current Date | >= 2 days while exceptions remain open | 2 days with open exceptions | < 2 days with open exceptions | Payroll calendar, Payroll Close Checklist |
-
-## 3. KPI Definitions
-
-### A. Payroll Completion Rate
-
-| Attribute | Definition |
-| --- | --- |
-| Business Purpose | Shows whether the payroll population has completed payroll results for the selected pay period. |
-| Formula | `(Workers with Status = Complete) / (Total Workers in Pay Group) x 100` |
-| Numerator | Distinct workers with payroll status equal to Complete for the selected pay period. |
-| Denominator | Total workers expected in the selected pay group, company, and department scope. |
-| Target | 100% |
-| Yellow Threshold | Less than 95% |
-| Red Threshold | Less than 90% |
-| Display Format | Percent with 1 decimal plus numerator and denominator, example: `98.7% (1,244 / 1,260)`. |
-| Owner | Payroll Manager |
-| Primary Action | Review incomplete payroll results and resolve blocking exceptions before approval. |
-
-### B. Total Payroll Cost
-
-| Attribute | Definition |
-| --- | --- |
-| Business Purpose | Shows total payroll cost exposure for the selected period and compares it to the prior comparable period. |
-| Formula | `SUM(Gross Pay + Employer Costs)` for selected period. |
-| Trend Formula | `(Current Period Total Payroll Cost - Prior Period Total Payroll Cost) / Prior Period Total Payroll Cost x 100` |
-| Target | Within approved payroll forecast and within normal prior-period variance tolerance. |
-| Yellow Threshold | Prior-period variance greater than 3% and less than or equal to 5%, unless explained by approved population or pay changes. |
-| Red Threshold | Prior-period variance greater than 5%. |
-| Display Format | Currency in millions plus trend, example: `$14.24M, +2.2% vs prior period`. |
-| Owner | Payroll Manager and Finance Analyst |
-| Primary Action | Drill into Payroll Cost Report by department, pay group, and worker to validate variance drivers. |
+| Tax Exception Count | COUNT workers where CF_Tax_ExTol Cost Report by department, pay group, and worker to validate variance drivers. |
 
 ### C. Exception Rate
 
