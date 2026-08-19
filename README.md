@@ -21,6 +21,12 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Workday Time Tracking, Payroll, Benefits, and Tax data sources
 - Microsoft Excel for export and offline analysis
 - Markdown documentation for functional, technical, testing, and portfolio artifacts
+- React, TypeScript, and Vite for the interactive portfolio dashboard
+- Tailwind CSS for responsive dashboard styling
+- Recharts for KPI and trend visualizations
+- TanStack Table for sortable report-style tables
+- Lucide React for dashboard actions and status icons
+- Vitest for calculation and UI behavior tests
 
 ## Features
 
@@ -34,6 +40,32 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Matrix view for overtime trends across departments
 - Excel export for Finance, audit, and offline analysis
 - Security, UAT, performance, and defect documentation for production readiness
+- Interactive dashboard shell with role-based presentation lens for payroll, HRIS, reporting, systems, and consulting roles
+
+## Interactive Dashboard App
+
+This repository now includes the start of a coded dashboard application that presents the Workday payroll reporting solution as an interview-ready portfolio experience.
+
+The app is designed for these target roles:
+
+- Workday Payroll Analyst
+- HRIS Analyst
+- Workday Functional Analyst
+- Payroll Systems Analyst
+- Workday Reporting Analyst
+- Workday Consultant
+- Workday Integration Analyst
+- HR Systems Analyst
+- Payroll Operations Analyst
+
+Day 1 implementation includes:
+
+- React + TypeScript + Vite project scaffold
+- Global dashboard header with Workday-style prompts
+- Overview tab with KPI cards and exception summary
+- Role lens selector for tailoring the presentation to different analyst and consultant roles
+- Tab shell for Payroll Costs, Overtime, Missing Time, Deductions, Tax Issues, and Documentation
+- Responsive layout foundation for desktop, tablet, and mobile views
 
 ## Project Structure
 
@@ -41,6 +73,10 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 workday-payroll-exception-dashboard/
 |-- README.md
 |-- LICENSE
+|-- package.json
+|-- index.html
+|-- vite.config.js
+|-- tailwind.config.js
 |-- assets/
 |   |-- architecture.png
 |   |-- workflow.png
@@ -81,6 +117,13 @@ workday-payroll-exception-dashboard/
 |   |-- sample-overtime.xlsx
 |   |-- sample-tax-report.xlsx
 |   `-- dashboard-screenshots/
+|-- src/
+|   |-- App.tsx
+|   |-- main.tsx
+|   |-- components/
+|   |-- data/
+|   |-- styles/
+|   `-- types/
 `-- testing/
     |-- Test_Cases.md
     |-- UAT_Scenarios.md
@@ -185,6 +228,20 @@ Start here:
 7. Use [testing/](testing/) for QA test cases, UAT scenarios, and defect tracking.
 8. See [samples/](samples/) for sample exports and portfolio screenshot placeholder location.
 9. Read [docs/Assumptions.md](docs/Assumptions.md) and [docs/Lessons_Learned.md](docs/Lessons_Learned.md) for final review, constraints, risks, and retrospective notes.
+10. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
+
+Run the dashboard locally:
+
+```bash
+npm install
+npm run dev
+```
+
+Build the dashboard:
+
+```bash
+npm run build
+```
 
 ## Production Readiness Notes
 
