@@ -1,14 +1,26 @@
 import { LayoutDashboard } from "lucide-react";
 import { dashboardTabs } from "../data/navigation";
+import { getExceptionBreakdown } from "../lib/calculations";
+import type { DashboardFilters } from "../types/dashboard";
 import { OverviewPreview } from "./OverviewPreview";
 
 interface DashboardShellProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  filters: DashboardFilters;
 }
 
-export function DashboardShell({ activeTab, onTabChange }: DashboardShellProps) {
-  const currentTab = dashboardTabs.find((tab) => tab.id === activeTab) ?? dashboardTabs[0];
+export function DashboardShell({ activeTab, filters, onTabChange }: DashboardShellProps) {
+  const breakdown = getExceptionBreakdown(filters);
+  const tabBadgeMap = new Map([
+    ["overtime", breakdown.find((item) => item.label === "Overtime")?.count ?? 0],
+    ["missing-time", breakdown.find((item) => item.label === "Missing Time")?.count ?? 0],
+    ["deductions", breakdown.find((item) => item.label === "Deductions")?.count ?? 0],
+    ["tax-issues", breakdown.find((item) => item.label === "Tax Issues")?.count ?? 0],
+    ["overview", breakdown.reduce((total, item) => total + item.count, 0)]
+  ]);
+  const tabs = dashboardTabs.map((tab) => ({ ...tab, badge: tabBadgeMap.get(tab.id) ?? tab.badge }));
+  const currentTab = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
 
   return (
     <section className="space-y-5">
@@ -16,7 +28,7 @@ export function DashboardShell({ activeTab, onTabChange }: DashboardShellProps) 
         aria-label="Dashboard reports"
         className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-panel"
       >
-        {dashboardTabs.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
 
           return (
@@ -46,7 +58,7 @@ export function DashboardShell({ activeTab, onTabChange }: DashboardShellProps) 
       </nav>
 
       {activeTab === "overview" ? (
-        <OverviewPreview />
+        <OverviewPreview filters={filters} />
       ) : (
         <section className="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-panel">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-blue-50 text-workday-blue">

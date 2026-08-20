@@ -9,6 +9,7 @@ export function App() {
   const [department, setDepartment] = useState("All Departments");
   const [activeRole, setActiveRole] = useState<RoleKey>("workday-payroll-analyst");
   const [activeTab, setActiveTab] = useState("overview");
+  const filters = { payPeriod, department };
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -25,7 +26,7 @@ export function App() {
           Viewing <span className="font-semibold text-workday-ink">{payPeriod}</span> for{" "}
           <span className="font-semibold text-workday-ink">{department}</span>
         </section>
-        <DashboardShell activeTab={activeTab} onTabChange={setActiveTab} />
+        <DashboardShell activeTab={activeTab} filters={filters} onTabChange={setActiveTab} />
       </main>
     </div>
   );
