@@ -131,8 +131,16 @@ export interface KpiHistoryPoint {
 export interface DashboardFilters {
   payPeriod: string;
   department: string;
-  company?: string;
-  payGroup?: string;
+  company: string;
+  payGroup: string;
+  searchTerm: string;
+}
+
+export interface FilterOptions {
+  payPeriods: string[];
+  companies: string[];
+  payGroups: string[];
+  departments: string[];
 }
 
 export interface ExceptionBreakdownItem {

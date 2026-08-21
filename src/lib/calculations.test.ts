@@ -3,13 +3,23 @@ import { getExceptionBreakdown, getOverviewMetrics, getWorkers } from "./calcula
 
 const currentFilters = {
   payPeriod: "2026-08-15 Semi-Monthly",
-  department: "All Departments"
+  company: "All Companies",
+  payGroup: "All Pay Groups",
+  department: "All Departments",
+  searchTerm: ""
 };
 
 describe("dashboard sample data calculations", () => {
   it("filters active workers by department", () => {
     expect(getWorkers(currentFilters)).toHaveLength(12);
     expect(getWorkers({ ...currentFilters, department: "Operations" })).toHaveLength(5);
+  });
+
+  it("applies shared company, pay group, and search prompts", () => {
+    expect(getWorkers({ ...currentFilters, company: "Northstar Retail Group" })).toHaveLength(2);
+    expect(getWorkers({ ...currentFilters, payGroup: "US Semi-Monthly" })).toHaveLength(4);
+    expect(getWorkers({ ...currentFilters, searchTerm: "Avery" })).toHaveLength(1);
+    expect(getWorkers({ ...currentFilters, searchTerm: "no-results" })).toHaveLength(0);
   });
 
   it("calculates overview metrics for the current pay period", () => {

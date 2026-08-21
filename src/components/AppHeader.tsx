@@ -1,17 +1,22 @@
 import { RefreshCw, Search, ShieldCheck } from "lucide-react";
+import type { DashboardFilters, FilterOptions } from "../types/dashboard";
 
 interface AppHeaderProps {
-  payPeriod: string;
-  department: string;
-  onPayPeriodChange: (value: string) => void;
-  onDepartmentChange: (value: string) => void;
+  filters: DashboardFilters;
+  filterOptions: FilterOptions;
+  isRefreshing: boolean;
+  roleTitle: string;
+  onFilterChange: (updates: Partial<DashboardFilters>) => void;
+  onRefresh: () => void;
 }
 
 export function AppHeader({
-  payPeriod,
-  department,
-  onPayPeriodChange,
-  onDepartmentChange
+  filters,
+  filterOptions,
+  isRefreshing,
+  onFilterChange,
+  onRefresh,
+  roleTitle
 }: AppHeaderProps) {
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -25,6 +30,9 @@ export function AppHeader({
             <h1 className="mt-1 text-2xl font-semibold text-workday-ink">
               Payroll Exception & Reporting Dashboard
             </h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Shared payroll readiness view for {roleTitle}
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -37,15 +45,19 @@ export function AppHeader({
                 id="global-search"
                 className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
                 placeholder="Search worker, manager, report"
+                value={filters.searchTerm}
+                onChange={(event) => onFilterChange({ searchTerm: event.target.value })}
                 type="search"
               />
             </div>
             <button
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-workday-blue px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-workday-blue px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2 disabled:cursor-wait disabled:bg-blue-400"
+              disabled={isRefreshing}
+              onClick={onRefresh}
               type="button"
             >
-              <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              Refresh
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} aria-hidden="true" />
+              {isRefreshing ? "Refreshing" : "Refresh"}
             </button>
           </div>
         </div>
@@ -55,29 +67,38 @@ export function AppHeader({
             Pay Period
             <select
               className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue"
-              value={payPeriod}
-              onChange={(event) => onPayPeriodChange(event.target.value)}
+              value={filters.payPeriod}
+              onChange={(event) => onFilterChange({ payPeriod: event.target.value })}
             >
-              <option>2026-08-15 Semi-Monthly</option>
-              <option>2026-07-31 Semi-Monthly</option>
-              <option>2026-07-15 Semi-Monthly</option>
+              {filterOptions.payPeriods.map((payPeriod) => (
+                <option key={payPeriod}>{payPeriod}</option>
+              ))}
             </select>
           </label>
 
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             Company
-            <select className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue">
-              <option>Northstar Services Inc.</option>
-              <option>Northstar Retail Group</option>
+            <select
+              className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue"
+              value={filters.company}
+              onChange={(event) => onFilterChange({ company: event.target.value })}
+            >
+              {filterOptions.companies.map((company) => (
+                <option key={company}>{company}</option>
+              ))}
             </select>
           </label>
 
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             Pay Group
-            <select className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue">
-              <option>All Pay Groups</option>
-              <option>US Semi-Monthly</option>
-              <option>US Weekly Hourly</option>
+            <select
+              className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue"
+              value={filters.payGroup}
+              onChange={(event) => onFilterChange({ payGroup: event.target.value })}
+            >
+              {filterOptions.payGroups.map((payGroup) => (
+                <option key={payGroup}>{payGroup}</option>
+              ))}
             </select>
           </label>
 
@@ -85,14 +106,12 @@ export function AppHeader({
             Department
             <select
               className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue"
-              value={department}
-              onChange={(event) => onDepartmentChange(event.target.value)}
+              value={filters.department}
+              onChange={(event) => onFilterChange({ department: event.target.value })}
             >
-              <option>All Departments</option>
-              <option>Operations</option>
-              <option>Customer Support</option>
-              <option>Finance</option>
-              <option>Human Resources</option>
+              {filterOptions.departments.map((department) => (
+                <option key={department}>{department}</option>
+              ))}
             </select>
           </label>
         </div>

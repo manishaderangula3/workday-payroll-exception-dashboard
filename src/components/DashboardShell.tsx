@@ -1,17 +1,21 @@
 import { LayoutDashboard } from "lucide-react";
 import { dashboardTabs } from "../data/navigation";
-import { getExceptionBreakdown } from "../lib/calculations";
+import { getExceptionBreakdown, getWorkers } from "../lib/calculations";
 import type { DashboardFilters } from "../types/dashboard";
+import { EmptyState } from "./EmptyState";
 import { OverviewPreview } from "./OverviewPreview";
 
 interface DashboardShellProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   filters: DashboardFilters;
+  isRefreshing: boolean;
+  onClearFilters: () => void;
 }
 
-export function DashboardShell({ activeTab, filters, onTabChange }: DashboardShellProps) {
+export function DashboardShell({ activeTab, filters, isRefreshing, onClearFilters, onTabChange }: DashboardShellProps) {
   const breakdown = getExceptionBreakdown(filters);
+  const visibleWorkers = getWorkers(filters);
   const tabBadgeMap = new Map([
     ["overtime", breakdown.find((item) => item.label === "Overtime")?.count ?? 0],
     ["missing-time", breakdown.find((item) => item.label === "Missing Time")?.count ?? 0],
@@ -21,9 +25,21 @@ export function DashboardShell({ activeTab, filters, onTabChange }: DashboardShe
   ]);
   const tabs = dashboardTabs.map((tab) => ({ ...tab, badge: tabBadgeMap.get(tab.id) ?? tab.badge }));
   const currentTab = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
+  const currentBadge = tabBadgeMap.get(activeTab) ?? 0;
+
+  if (visibleWorkers.length === 0) {
+    return (
+      <EmptyState
+        actionLabel="Clear filters"
+        message="No active workers match the current pay period, company, pay group, department, and search prompts."
+        onAction={onClearFilters}
+        title="No matching workers"
+      />
+    );
+  }
 
   return (
-    <section className="space-y-5">
+    <section className={`space-y-5 ${isRefreshing ? "opacity-70 transition-opacity" : ""}`}>
       <nav
         aria-label="Dashboard reports"
         className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-panel"
@@ -59,6 +75,11 @@ export function DashboardShell({ activeTab, filters, onTabChange }: DashboardShe
 
       {activeTab === "overview" ? (
         <OverviewPreview filters={filters} />
+      ) : currentBadge === 0 && activeTab !== "payroll-costs" && activeTab !== "documentation" ? (
+        <EmptyState
+          message={`No ${currentTab.label.toLowerCase()} exceptions match the current shared prompts.`}
+          title={`No ${currentTab.label.toLowerCase()} exceptions`}
+        />
       ) : (
         <section className="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-panel">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-blue-50 text-workday-blue">

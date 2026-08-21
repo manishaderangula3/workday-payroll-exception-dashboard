@@ -13,11 +13,27 @@ function matchesDepartment(worker: Worker, department: string): boolean {
 }
 
 export function getWorkers(filters: DashboardFilters): Worker[] {
-  return workers.filter((worker) => {
-    const companyMatch = !filters.company || filters.company === "All Companies" || worker.company === filters.company;
-    const payGroupMatch = !filters.payGroup || filters.payGroup === "All Pay Groups" || worker.payGroup === filters.payGroup;
+  const searchTerm = filters.searchTerm.trim().toLowerCase();
 
-    return worker.active && matchesDepartment(worker, filters.department) && companyMatch && payGroupMatch;
+  return workers.filter((worker) => {
+    const companyMatch = filters.company === "All Companies" || worker.company === filters.company;
+    const payGroupMatch = filters.payGroup === "All Pay Groups" || worker.payGroup === filters.payGroup;
+    const searchMatch =
+      !searchTerm ||
+      [
+        worker.employeeId,
+        worker.employeeName,
+        worker.department,
+        worker.manager,
+        worker.company,
+        worker.payGroup,
+        worker.location
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchTerm);
+
+    return worker.active && matchesDepartment(worker, filters.department) && companyMatch && payGroupMatch && searchMatch;
   });
 }
 

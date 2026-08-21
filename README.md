@@ -67,6 +67,14 @@ Day 1 implementation includes:
 - Tab shell for Payroll Costs, Overtime, Missing Time, Deductions, Tax Issues, and Documentation
 - Responsive layout foundation for desktop, tablet, and mobile views
 
+Day 3 implementation adds:
+
+- Fully controlled shared prompts for Pay Period, Company, Pay Group, Department, and worker/report search
+- Filter summary bar with current prompt chips and last refreshed timestamp
+- Refresh interaction with loading feedback
+- Shared filter logic applied to KPI cards, exception badges, and dashboard states
+- Empty-state handling for no matching workers and no exceptions
+
 ## Project Structure
 
 ```text
