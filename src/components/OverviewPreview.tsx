@@ -9,6 +9,7 @@ import {
   formatVariancePercent
 } from "../lib/formatters";
 import type { DashboardFilters, KpiCard, Severity } from "../types/dashboard";
+import { ExecutiveHighlights } from "./ExecutiveHighlights";
 
 const severityClasses: Record<Severity, string> = {
   success: "border-l-workday-green",
@@ -34,35 +35,41 @@ export function OverviewPreview({ filters }: OverviewPreviewProps) {
         metrics.priorPayrollCost > 0 && metrics.totalPayrollCost / metrics.priorPayrollCost - 1 > 0.05
           ? "warning"
           : "success",
-      trend: formatVariancePercent(metrics.totalPayrollCost, metrics.priorPayrollCost)
+      trend: formatVariancePercent(metrics.totalPayrollCost, metrics.priorPayrollCost),
+      target: "Alert if variance > 5%"
     },
     {
-      label: "Workers Processed",
-      value: `${metrics.workersProcessed} / ${metrics.workersExpected}`,
-      detail: "Workers complete or ready",
+      label: "Payroll Completion",
+      value: formatPercent(metrics.payrollCompletionRate),
+      detail: `${metrics.workersProcessed} of ${metrics.workersExpected} workers complete`,
       severity: metrics.payrollCompletionRate < 0.9 ? "critical" : metrics.payrollCompletionRate < 0.95 ? "warning" : "success",
-      trend: `${formatPercent(metrics.payrollCompletionRate)} complete`
+      trend: "Target 100%",
+      progress: metrics.payrollCompletionRate,
+      target: "Green at 95%+"
     },
     {
-      label: "Open Exceptions",
+      label: "Workers with Exceptions",
       value: `${metrics.openExceptionWorkers}`,
       detail: "Across time, deductions, and tax",
       severity: metrics.openExceptionWorkers > 5 ? "critical" : metrics.openExceptionWorkers > 0 ? "warning" : "success",
-      trend: `${metrics.criticalExceptionWorkers} critical`
+      trend: `${metrics.criticalExceptionWorkers} critical`,
+      target: "Target < 2%"
     },
     {
       label: "Missing Time",
       value: `${metrics.missingTimeWorkers}`,
       detail: "Workers with unsubmitted time",
       severity: metrics.missingTimeWorkers > 5 ? "critical" : metrics.missingTimeWorkers > 0 ? "warning" : "success",
-      trend: `${metrics.workersNearDeadline} near deadline`
+      trend: `${metrics.workersNearDeadline} near deadline`,
+      target: "Target 0"
     },
     {
       label: "OT Hours",
       value: metrics.overtimeHours.toFixed(1),
       detail: `${formatCompactCurrency(metrics.overtimeCost)} estimated cost`,
       severity: metrics.overtimeHours > 20 ? "warning" : metrics.overtimeHours > 0 ? "warning" : "success",
-      trend: `${formatPercent(metrics.overtimeTrendPercent)} vs prior period`
+      trend: `${formatPercent(metrics.overtimeTrendPercent)} vs prior period`,
+      target: "Monitor > 40 hours/week"
     }
   ];
 
@@ -87,7 +94,16 @@ export function OverviewPreview({ filters }: OverviewPreviewProps) {
                 </div>
               </div>
               <p className="mt-3 text-sm text-slate-600">{kpi.detail}</p>
+              {typeof kpi.progress === "number" ? (
+                <div className="mt-3 h-2 rounded-full bg-slate-100">
+                  <div
+                    className="h-2 rounded-full bg-workday-blue"
+                    style={{ width: `${Math.min(kpi.progress * 100, 100)}%` }}
+                  />
+                </div>
+              ) : null}
               <p className="mt-2 text-xs font-semibold uppercase text-slate-500">{kpi.trend}</p>
+              {kpi.target ? <p className="mt-1 text-xs text-slate-400">{kpi.target}</p> : null}
             </article>
           );
         })}
@@ -150,6 +166,16 @@ export function OverviewPreview({ filters }: OverviewPreviewProps) {
           </p>
         </section>
       </div>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-workday-ink">Exception Highlights</h2>
+            <p className="text-sm text-slate-600">Top items to review before payroll approval.</p>
+          </div>
+        </div>
+        <ExecutiveHighlights highlights={metrics.highlights} />
+      </section>
     </section>
   );
 }

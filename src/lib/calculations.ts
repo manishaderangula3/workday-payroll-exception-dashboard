@@ -1,9 +1,12 @@
 import { deductionResults, payrollResults, payPeriods, taxResults, timeEntries, workers } from "../data";
 import type {
   DashboardFilters,
+  DeductionResult,
   ExceptionBreakdownItem,
+  ExecutiveHighlights,
   OverviewMetrics,
   PayrollResult,
+  TaxResult,
   TimeEntry,
   Worker
 } from "../types/dashboard";
@@ -108,6 +111,74 @@ export function getTaxExceptions(filters: DashboardFilters) {
       visibleWorkerIds.has(result.employeeId) &&
       result.exceptionType !== "None"
   );
+}
+
+function findWorker(employeeId: string): Worker | undefined {
+  return workers.find((worker) => worker.employeeId === employeeId);
+}
+
+function getWorkerDepartment(employeeId: string): string {
+  return findWorker(employeeId)?.department ?? "Unassigned";
+}
+
+function getWorkerName(employeeId: string): string {
+  return findWorker(employeeId)?.employeeName ?? employeeId;
+}
+
+export function getExecutiveHighlights(filters: DashboardFilters): ExecutiveHighlights {
+  const overtime = getTimeEntries(filters)
+    .filter((entry) => entry.overtimeHours > 0)
+    .map((entry) => ({
+      employeeId: entry.employeeId,
+      employeeName: getWorkerName(entry.employeeId),
+      department: getWorkerDepartment(entry.employeeId),
+      overtimeHours: entry.overtimeHours,
+      overtimeCost: getOvertimeCost(entry)
+    }))
+    .sort((a, b) => b.overtimeHours - a.overtimeHours)
+    .slice(0, 5);
+
+  const missingTime = getMissingTimeEntries(filters)
+    .map((entry) => ({
+      employeeId: entry.employeeId,
+      employeeName: getWorkerName(entry.employeeId),
+      department: getWorkerDepartment(entry.employeeId),
+      missingDays: entry.missingDates.length,
+      missingDates: entry.missingDates
+    }))
+    .sort((a, b) => b.missingDays - a.missingDays)
+    .slice(0, 5);
+
+  const deductions = getDeductionExceptions(filters)
+    .map((result: DeductionResult) => ({
+      employeeId: result.employeeId,
+      employeeName: getWorkerName(result.employeeId),
+      department: getWorkerDepartment(result.employeeId),
+      deductionName: result.deductionName,
+      exceptionType: result.exceptionType,
+      variance: result.actualAmount - result.expectedAmount
+    }))
+    .sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance))
+    .slice(0, 5);
+
+  const taxes = getTaxExceptions(filters)
+    .map((result: TaxResult) => ({
+      employeeId: result.employeeId,
+      employeeName: getWorkerName(result.employeeId),
+      department: getWorkerDepartment(result.employeeId),
+      taxAuthority: result.taxAuthority,
+      exceptionType: result.exceptionType,
+      variance: result.actualTax - result.expectedTax
+    }))
+    .sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance))
+    .slice(0, 5);
+
+  return {
+    overtime,
+    missingTime,
+    deductions,
+    taxes
+  };
 }
 
 export function getExceptionBreakdown(filters: DashboardFilters): ExceptionBreakdownItem[] {
@@ -229,6 +300,7 @@ export function getOverviewMetrics(filters: DashboardFilters): OverviewMetrics {
     },
     approvalDeadline: "2026-08-23",
     daysToDeadline: 3,
-    exceptionBreakdown: getExceptionBreakdown(filters)
+    exceptionBreakdown: getExceptionBreakdown(filters),
+    highlights: getExecutiveHighlights(filters)
   };
 }

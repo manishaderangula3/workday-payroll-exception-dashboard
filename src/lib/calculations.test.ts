@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getExceptionBreakdown, getOverviewMetrics, getWorkers } from "./calculations";
+import { getExceptionBreakdown, getExecutiveHighlights, getOverviewMetrics, getWorkers } from "./calculations";
 
 const currentFilters = {
   payPeriod: "2026-08-15 Semi-Monthly",
@@ -48,5 +48,28 @@ describe("dashboard sample data calculations", () => {
       { label: "Deductions", count: 4, colorClass: "bg-blue-500" },
       { label: "Tax Issues", count: 4, colorClass: "bg-emerald-500" }
     ]);
+  });
+
+  it("returns executive highlights for overview presentation", () => {
+    const highlights = getExecutiveHighlights(currentFilters);
+
+    expect(highlights.overtime[0]).toMatchObject({
+      employeeName: "Avery Brooks",
+      overtimeHours: 16.5
+    });
+    expect(highlights.missingTime[0]).toMatchObject({
+      employeeName: "Harper Wilson",
+      missingDays: 5
+    });
+    expect(highlights.deductions[0]).toMatchObject({
+      employeeName: "Sofia Martinez",
+      exceptionType: "Failed",
+      variance: -238
+    });
+    expect(highlights.taxes[0]).toMatchObject({
+      employeeName: "Noah Kim",
+      exceptionType: "No Withholding",
+      variance: -464
+    });
   });
 });

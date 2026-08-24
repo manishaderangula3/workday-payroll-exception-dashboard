@@ -75,6 +75,14 @@ Day 3 implementation adds:
 - Shared filter logic applied to KPI cards, exception badges, and dashboard states
 - Empty-state handling for no matching workers and no exceptions
 
+Day 4 implementation adds:
+
+- Executive KPI cards driven by calculated sample payroll data
+- Payroll Completion KPI with progress indicator and threshold context
+- Period-over-period payroll cost and overtime trend cues
+- Top exception highlight cards for overtime, missing time, deductions, and tax issues
+- Test coverage for executive highlight sorting and values
+
 ## Project Structure
 
 ```text

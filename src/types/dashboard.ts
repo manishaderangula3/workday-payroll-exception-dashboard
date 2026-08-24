@@ -30,6 +30,8 @@ export interface KpiCard {
   detail: string;
   severity: Severity;
   trend: string;
+  progress?: number;
+  target?: string;
 }
 
 export type WorkerType = "Employee" | "Contingent Worker";
@@ -149,6 +151,47 @@ export interface ExceptionBreakdownItem {
   colorClass: string;
 }
 
+export interface OvertimeHighlight {
+  employeeId: string;
+  employeeName: string;
+  department: string;
+  overtimeHours: number;
+  overtimeCost: number;
+}
+
+export interface MissingTimeHighlight {
+  employeeId: string;
+  employeeName: string;
+  department: string;
+  missingDays: number;
+  missingDates: string[];
+}
+
+export interface DeductionHighlight {
+  employeeId: string;
+  employeeName: string;
+  department: string;
+  deductionName: string;
+  exceptionType: DeductionExceptionType;
+  variance: number;
+}
+
+export interface TaxHighlight {
+  employeeId: string;
+  employeeName: string;
+  department: string;
+  taxAuthority: string;
+  exceptionType: TaxExceptionType;
+  variance: number;
+}
+
+export interface ExecutiveHighlights {
+  overtime: OvertimeHighlight[];
+  missingTime: MissingTimeHighlight[];
+  deductions: DeductionHighlight[];
+  taxes: TaxHighlight[];
+}
+
 export interface OverviewMetrics {
   totalPayrollCost: number;
   priorPayrollCost: number;
@@ -173,4 +216,5 @@ export interface OverviewMetrics {
   approvalDeadline: string;
   daysToDeadline: number;
   exceptionBreakdown: ExceptionBreakdownItem[];
+  highlights: ExecutiveHighlights;
 }
