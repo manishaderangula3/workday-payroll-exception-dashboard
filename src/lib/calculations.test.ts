@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { getExceptionBreakdown, getExecutiveHighlights, getOverviewMetrics, getWorkers } from "./calculations";
+import {
+  getExceptionBreakdown,
+  getExecutiveHighlights,
+  getOvertimeMatrix,
+  getPayrollTrend,
+  getOverviewMetrics,
+  getWorkers
+} from "./calculations";
 
 const currentFilters = {
   payPeriod: "2026-08-15 Semi-Monthly",
@@ -43,11 +50,52 @@ describe("dashboard sample data calculations", () => {
 
   it("returns the Workday report exception mix used by tab badges", () => {
     expect(getExceptionBreakdown(currentFilters)).toEqual([
-      { label: "Overtime", count: 4, colorClass: "bg-workday-amber" },
-      { label: "Missing Time", count: 3, colorClass: "bg-workday-red" },
-      { label: "Deductions", count: 4, colorClass: "bg-blue-500" },
-      { label: "Tax Issues", count: 4, colorClass: "bg-emerald-500" }
+      {
+        label: "Overtime",
+        count: 4,
+        colorClass: "bg-workday-amber",
+        chartColor: "#FF9800",
+        tabId: "overtime"
+      },
+      {
+        label: "Missing Time",
+        count: 3,
+        colorClass: "bg-workday-red",
+        chartColor: "#F44336",
+        tabId: "missing-time"
+      },
+      {
+        label: "Deductions",
+        count: 4,
+        colorClass: "bg-blue-500",
+        chartColor: "#1976D2",
+        tabId: "deductions"
+      },
+      {
+        label: "Tax Issues",
+        count: 4,
+        colorClass: "bg-emerald-500",
+        chartColor: "#10B981",
+        tabId: "tax-issues"
+      }
     ]);
+  });
+
+  it("returns chart data for payroll cost and overtime trends", () => {
+    const payrollTrend = getPayrollTrend(currentFilters);
+    const overtimeMatrix = getOvertimeMatrix(currentFilters);
+
+    expect(payrollTrend).toHaveLength(6);
+    expect(payrollTrend[payrollTrend.length - 1]).toMatchObject({
+      label: "2026-08-15",
+      payrollCost: 50264,
+      isSelected: true
+    });
+    expect(overtimeMatrix[0]).toMatchObject({
+      department: "Operations",
+      total: 103.5
+    });
+    expect(overtimeMatrix[0].weeks["Aug 15"]).toBe(35.5);
   });
 
   it("returns executive highlights for overview presentation", () => {

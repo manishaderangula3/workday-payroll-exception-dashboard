@@ -4,3 +4,4 @@ export { timeEntries } from "./timeEntries";
 export { deductionResults } from "./deductionExceptions";
 export { taxResults } from "./taxExceptions";
 export { kpiHistory } from "./kpiHistory";
+export { overtimeTrends } from "./overtimeTrends";

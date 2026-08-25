@@ -10,6 +10,7 @@ import {
 } from "../lib/formatters";
 import type { DashboardFilters, KpiCard, Severity } from "../types/dashboard";
 import { ExecutiveHighlights } from "./ExecutiveHighlights";
+import { TrendVisualizations } from "./TrendVisualizations";
 
 const severityClasses: Record<Severity, string> = {
   success: "border-l-workday-green",
@@ -22,9 +23,10 @@ const icons = [DollarSign, Users, AlertTriangle, Clock, FileSpreadsheet];
 
 interface OverviewPreviewProps {
   filters: DashboardFilters;
+  onTabChange: (tabId: string) => void;
 }
 
-export function OverviewPreview({ filters }: OverviewPreviewProps) {
+export function OverviewPreview({ filters, onTabChange }: OverviewPreviewProps) {
   const metrics = getOverviewMetrics(filters);
   const kpis: KpiCard[] = [
     {
@@ -166,6 +168,8 @@ export function OverviewPreview({ filters }: OverviewPreviewProps) {
           </p>
         </section>
       </div>
+
+      <TrendVisualizations filters={filters} onTabChange={onTabChange} />
 
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">

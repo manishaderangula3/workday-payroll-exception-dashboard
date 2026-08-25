@@ -74,7 +74,7 @@ export function DashboardShell({ activeTab, filters, isRefreshing, onClearFilter
       </nav>
 
       {activeTab === "overview" ? (
-        <OverviewPreview filters={filters} />
+        <OverviewPreview filters={filters} onTabChange={onTabChange} />
       ) : currentBadge === 0 && activeTab !== "payroll-costs" && activeTab !== "documentation" ? (
         <EmptyState
           message={`No ${currentTab.label.toLowerCase()} exceptions match the current shared prompts.`}

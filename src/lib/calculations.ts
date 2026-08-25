@@ -1,10 +1,22 @@
-import { deductionResults, payrollResults, payPeriods, taxResults, timeEntries, workers } from "../data";
+import {
+  deductionResults,
+  kpiHistory,
+  overtimeTrends,
+  payrollResults,
+  payPeriods,
+  taxResults,
+  timeEntries,
+  workers
+} from "../data";
 import type {
   DashboardFilters,
   DeductionResult,
   ExceptionBreakdownItem,
   ExecutiveHighlights,
+  OvertimeMatrixRow,
+  OvertimeTrendPoint,
   OverviewMetrics,
+  PayrollTrendPoint,
   PayrollResult,
   TaxResult,
   TimeEntry,
@@ -188,11 +200,73 @@ export function getExceptionBreakdown(filters: DashboardFilters): ExceptionBreak
   const taxCount = getTaxExceptions(filters).length;
 
   return [
-    { label: "Overtime", count: overtimeCount, colorClass: "bg-workday-amber" },
-    { label: "Missing Time", count: missingTimeCount, colorClass: "bg-workday-red" },
-    { label: "Deductions", count: deductionCount, colorClass: "bg-blue-500" },
-    { label: "Tax Issues", count: taxCount, colorClass: "bg-emerald-500" }
+    {
+      label: "Overtime",
+      count: overtimeCount,
+      colorClass: "bg-workday-amber",
+      chartColor: "#FF9800",
+      tabId: "overtime"
+    },
+    {
+      label: "Missing Time",
+      count: missingTimeCount,
+      colorClass: "bg-workday-red",
+      chartColor: "#F44336",
+      tabId: "missing-time"
+    },
+    {
+      label: "Deductions",
+      count: deductionCount,
+      colorClass: "bg-blue-500",
+      chartColor: "#1976D2",
+      tabId: "deductions"
+    },
+    {
+      label: "Tax Issues",
+      count: taxCount,
+      colorClass: "bg-emerald-500",
+      chartColor: "#10B981",
+      tabId: "tax-issues"
+    }
   ];
+}
+
+export function getPayrollTrend(filters: DashboardFilters): PayrollTrendPoint[] {
+  return kpiHistory.map((point) => ({
+    payPeriod: point.payPeriod,
+    label: point.payPeriod.replace(" Semi-Monthly", ""),
+    payrollCost: point.payrollCost,
+    completionRate: point.payrollCompletionRate,
+    exceptionRate: point.exceptionRate,
+    isSelected: point.payPeriod === filters.payPeriod
+  }));
+}
+
+export function getOvertimeTrend(filters: DashboardFilters): OvertimeTrendPoint[] {
+  const visibleDepartments = new Set(getWorkers(filters).map((worker) => worker.department));
+
+  return overtimeTrends.filter((point) => {
+    const departmentMatch = filters.department === "All Departments" || point.department === filters.department;
+    return departmentMatch && visibleDepartments.has(point.department);
+  });
+}
+
+export function getOvertimeMatrix(filters: DashboardFilters): OvertimeMatrixRow[] {
+  const matrix = new Map<string, OvertimeMatrixRow>();
+
+  getOvertimeTrend(filters).forEach((point) => {
+    const row = matrix.get(point.department) ?? {
+      department: point.department,
+      total: 0,
+      weeks: {}
+    };
+
+    row.weeks[point.weekLabel] = point.overtimeHours;
+    row.total += point.overtimeHours;
+    matrix.set(point.department, row);
+  });
+
+  return [...matrix.values()].sort((a, b) => b.total - a.total);
 }
 
 export function getOpenExceptionWorkerIds(filters: DashboardFilters): Set<string> {

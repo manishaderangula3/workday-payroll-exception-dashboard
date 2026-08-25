@@ -83,6 +83,14 @@ Day 4 implementation adds:
 - Top exception highlight cards for overtime, missing time, deductions, and tax issues
 - Test coverage for executive highlight sorting and values
 
+Day 5 implementation adds:
+
+- Payroll cost trend chart across six pay periods
+- Clickable exception breakdown donut chart that routes to detail report tabs
+- Four-week overtime trend matrix by department
+- Chart-ready calculation helpers and overtime trend fixtures
+- Build chunking for chart dependencies
+
 ## Project Structure
 
 ```text

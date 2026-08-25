@@ -149,6 +149,31 @@ export interface ExceptionBreakdownItem {
   label: "Overtime" | "Missing Time" | "Deductions" | "Tax Issues";
   count: number;
   colorClass: string;
+  chartColor: string;
+  tabId: string;
+}
+
+export interface PayrollTrendPoint {
+  payPeriod: string;
+  label: string;
+  payrollCost: number;
+  completionRate: number;
+  exceptionRate: number;
+  isSelected: boolean;
+}
+
+export interface OvertimeTrendPoint {
+  department: string;
+  weekEndingDate: string;
+  weekLabel: string;
+  overtimeHours: number;
+  overtimeCost: number;
+}
+
+export interface OvertimeMatrixRow {
+  department: string;
+  total: number;
+  weeks: Record<string, number>;
 }
 
 export interface OvertimeHighlight {
