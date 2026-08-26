@@ -1,9 +1,9 @@
-import { LayoutDashboard } from "lucide-react";
 import { dashboardTabs } from "../data/navigation";
 import { getExceptionBreakdown, getWorkers } from "../lib/calculations";
 import type { DashboardFilters } from "../types/dashboard";
 import { EmptyState } from "./EmptyState";
 import { OverviewPreview } from "./OverviewPreview";
+import { ReportViews } from "./ReportViews";
 
 interface DashboardShellProps {
   activeTab: string;
@@ -81,16 +81,7 @@ export function DashboardShell({ activeTab, filters, isRefreshing, onClearFilter
           title={`No ${currentTab.label.toLowerCase()} exceptions`}
         />
       ) : (
-        <section className="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-panel">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-blue-50 text-workday-blue">
-            <LayoutDashboard className="h-6 w-6" aria-hidden="true" />
-          </div>
-          <h2 className="mt-4 text-xl font-semibold text-workday-ink">{currentTab.label}</h2>
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            This tab is reserved for the interactive report view that will be built from the
-            existing Workday specification.
-          </p>
-        </section>
+        <ReportViews activeTab={activeTab} filters={filters} />
       )}
     </section>
   );

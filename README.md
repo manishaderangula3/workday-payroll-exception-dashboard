@@ -91,6 +91,14 @@ Day 5 implementation adds:
 - Chart-ready calculation helpers and overtime trend fixtures
 - Build chunking for chart dependencies
 
+Day 6 implementation adds:
+
+- Workday-style detail report tabs for Payroll Costs, Overtime, Missing Time, Deductions, and Tax Issues
+- Reusable TanStack Table component with sorting, pagination, row counts, and report summaries
+- Report row builders that join worker, payroll, time, deduction, and tax sample data
+- Payroll cost totals, overtime totals, missing day totals, deduction variance, arrears balance, and tax variance summaries
+- Documentation tab linking the interactive dashboard back to the Workday report specifications
+
 ## Project Structure
 
 ```text
