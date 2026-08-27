@@ -7,6 +7,7 @@ import {
   getPayrollCostReportRows,
   getTaxExceptionReportRows
 } from "../lib/reportRows";
+import { type CsvRow, downloadCsv, sanitizeFileName } from "../lib/csvExport";
 import { formatCurrency, formatDateShort, formatHours } from "../lib/formatters";
 import type { DashboardFilters, PayrollStatus } from "../types/dashboard";
 import type {
@@ -22,6 +23,8 @@ import { StatusBadge } from "./StatusBadge";
 interface ReportViewsProps {
   activeTab: string;
   filters: DashboardFilters;
+  acknowledgedCount: number;
+  onWorkerSelect: (employeeId: string) => void;
 }
 
 function payrollStatusTone(status: PayrollStatus) {
@@ -62,6 +65,23 @@ function employeeCell(name: string, employeeId: string) {
       <p className="font-semibold text-workday-ink">{name}</p>
       <p className="text-xs text-slate-500">{employeeId}</p>
     </div>
+  );
+}
+
+function exportReport(reportName: string, filters: DashboardFilters, rows: CsvRow[]) {
+  downloadCsv(
+    `${sanitizeFileName(reportName)}-${sanitizeFileName(filters.payPeriod)}.csv`,
+    rows,
+    {
+      report: reportName,
+      payPeriod: filters.payPeriod,
+      company: filters.company,
+      payGroup: filters.payGroup,
+      department: filters.department,
+      searchTerm: filters.searchTerm || "None",
+      generatedBy: "Payroll Exception Dashboard",
+      generatedAt: new Date().toISOString()
+    }
   );
 }
 
@@ -364,7 +384,7 @@ function renderDocumentationView() {
   );
 }
 
-export function ReportViews({ activeTab, filters }: ReportViewsProps) {
+export function ReportViews({ acknowledgedCount, activeTab, filters, onWorkerSelect }: ReportViewsProps) {
   if (activeTab === "documentation") {
     return renderDocumentationView();
   }
@@ -388,11 +408,14 @@ export function ReportViews({ activeTab, filters }: ReportViewsProps) {
         columns={payrollCostColumns}
         data={rows}
         description="Payroll cost detail grouped by department and pay group with preserved payroll status visibility."
+        onExport={() => exportReport("Payroll Cost Summary Report", filters, rows as unknown as CsvRow[])}
+        onRowSelect={onWorkerSelect}
         rowLabel="payroll result rows"
         summary={[
           { label: "Gross Pay", value: formatCurrency(totals.grossPay) },
           { label: "Employer Costs", value: formatCurrency(totals.employerCosts) },
-          { label: "Total Payroll Cost", value: formatCurrency(totals.totalPayrollCost), tone: "bg-blue-50" }
+          { label: "Total Payroll Cost", value: formatCurrency(totals.totalPayrollCost), tone: "bg-blue-50" },
+          { label: "Acknowledged", value: String(acknowledgedCount), tone: "bg-green-50" }
         ]}
         title="Payroll Cost Summary Report"
       />
@@ -411,11 +434,14 @@ export function ReportViews({ activeTab, filters }: ReportViewsProps) {
         data={rows}
         description="Non-exempt overtime exceptions sorted by highest overtime hours for manager review."
         initialPageSize={6}
+        onExport={() => exportReport("Overtime Hours Exception Report", filters, rows as unknown as CsvRow[])}
+        onRowSelect={onWorkerSelect}
         rowLabel="overtime exception rows"
         summary={[
           { label: "OT Hours", value: formatHours(totalHours), tone: "bg-amber-50" },
           { label: "OT Cost", value: formatCurrency(totalCost) },
-          { label: "Red Alerts", value: String(redAlerts), tone: "bg-red-50" }
+          { label: "Red Alerts", value: String(redAlerts), tone: "bg-red-50" },
+          { label: "Acknowledged", value: String(acknowledgedCount), tone: "bg-green-50" }
         ]}
         title="Overtime Hours Exception Report"
       />
@@ -432,11 +458,14 @@ export function ReportViews({ activeTab, filters }: ReportViewsProps) {
         data={rows}
         description="Workers with missing required time entries, manager contact fields, and exact missing dates."
         initialPageSize={6}
+        onExport={() => exportReport("Missing Time Entries Exception Report", filters, rows as unknown as CsvRow[])}
+        onRowSelect={onWorkerSelect}
         rowLabel="missing time exception rows"
         summary={[
           { label: "Workers", value: String(rows.length), tone: "bg-red-50" },
           { label: "Missing Days", value: String(totalMissingDays), tone: "bg-red-50" },
-          { label: "Deadline", value: "Aug 23" }
+          { label: "Deadline", value: "Aug 23" },
+          { label: "Acknowledged", value: String(acknowledgedCount), tone: "bg-green-50" }
         ]}
         title="Missing Time Entries Exception Report"
       />
@@ -454,11 +483,14 @@ export function ReportViews({ activeTab, filters }: ReportViewsProps) {
         data={rows}
         description="Failed, over-deducted, under-deducted, and arrears items sorted by largest variance."
         initialPageSize={6}
+        onExport={() => exportReport("Deduction Exception Report", filters, rows as unknown as CsvRow[])}
+        onRowSelect={onWorkerSelect}
         rowLabel="deduction exception rows"
         summary={[
           { label: "Exceptions", value: String(rows.length), tone: "bg-red-50" },
           { label: "Net Variance", value: formatCurrency(totalVariance) },
-          { label: "Arrears Balance", value: formatCurrency(arrearsBalance), tone: "bg-amber-50" }
+          { label: "Arrears Balance", value: formatCurrency(arrearsBalance), tone: "bg-amber-50" },
+          { label: "Acknowledged", value: String(acknowledgedCount), tone: "bg-green-50" }
         ]}
         title="Deduction Exception Report"
       />
@@ -470,17 +502,20 @@ export function ReportViews({ activeTab, filters }: ReportViewsProps) {
 
   return (
     <ReportTable
-      columns={taxColumns}
-      data={rows}
-      description="Tax withholding and tax form exceptions grouped by issue type for compliance review."
-      initialPageSize={6}
-      rowLabel="tax exception rows"
-      summary={[
-        { label: "Exceptions", value: String(rows.length), tone: "bg-red-50" },
-        { label: "Tax Variance", value: formatCurrency(totalVariance) },
-        { label: "Review Status", value: "Before approval", tone: "bg-amber-50" }
-      ]}
-      title="Tax Exception Report"
-    />
+    columns={taxColumns}
+    data={rows}
+    description="Tax withholding and tax form exceptions grouped by issue type for compliance review."
+    initialPageSize={6}
+    onExport={() => exportReport("Tax Exception Report", filters, rows as unknown as CsvRow[])}
+    onRowSelect={onWorkerSelect}
+    rowLabel="tax exception rows"
+    summary={[
+      { label: "Exceptions", value: String(rows.length), tone: "bg-red-50" },
+      { label: "Tax Variance", value: formatCurrency(totalVariance) },
+      { label: "Review Status", value: "Before approval", tone: "bg-amber-50" },
+      { label: "Acknowledged", value: String(acknowledgedCount), tone: "bg-green-50" }
+    ]}
+    title="Tax Exception Report"
+  />
   );
 }

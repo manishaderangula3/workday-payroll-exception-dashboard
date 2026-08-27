@@ -99,6 +99,14 @@ Day 6 implementation adds:
 - Payroll cost totals, overtime totals, missing day totals, deduction variance, arrears balance, and tax variance summaries
 - Documentation tab linking the interactive dashboard back to the Workday report specifications
 
+Day 7 implementation adds:
+
+- Worker drill-down panel from any report row
+- Joined worker snapshot showing payroll, time, deduction, and tax context
+- Action workflow buttons for manager notification, time entry review, issue acknowledgement, and worker snapshot export
+- CSV export for each current filtered report view with audit metadata
+- Test coverage for CSV generation and worker snapshot joins
+
 ## Project Structure
 
 ```text

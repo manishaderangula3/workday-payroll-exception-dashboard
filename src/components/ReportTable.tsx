@@ -7,11 +7,18 @@ import {
   type SortingState,
   useReactTable
 } from "@tanstack/react-table";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, ChevronUp } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  ChevronUp,
+  Download
+} from "lucide-react";
 import { useState } from "react";
 import { EmptyState } from "./EmptyState";
 
-interface ReportTableProps<TData extends object> {
+interface ReportTableProps<TData extends { employeeId?: string }> {
   title: string;
   description: string;
   columns: ColumnDef<TData>[];
@@ -19,13 +26,17 @@ interface ReportTableProps<TData extends object> {
   rowLabel: string;
   initialPageSize?: number;
   summary?: Array<{ label: string; value: string; tone?: string }>;
+  onExport?: () => void;
+  onRowSelect?: (employeeId: string) => void;
 }
 
-export function ReportTable<TData extends object>({
+export function ReportTable<TData extends { employeeId?: string }>({
   columns,
   data,
   description,
   initialPageSize = 8,
+  onExport,
+  onRowSelect,
   rowLabel,
   summary = [],
   title
@@ -62,14 +73,31 @@ export function ReportTable<TData extends object>({
           <div>
             <h2 className="text-lg font-semibold text-workday-ink">{title}</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+            {onRowSelect ? (
+              <p className="mt-2 text-xs font-semibold uppercase text-slate-500">
+                Select a row to open worker payroll details.
+              </p>
+            ) : null}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {summary.map((item) => (
-              <div className={`rounded-md border border-slate-200 px-3 py-2 ${item.tone ?? "bg-slate-50"}`} key={item.label}>
-                <p className="text-xs font-semibold uppercase text-slate-500">{item.label}</p>
-                <p className="mt-1 text-sm font-semibold text-workday-ink">{item.value}</p>
-              </div>
-            ))}
+          <div className="flex flex-col gap-3 xl:items-end">
+            <div className="flex flex-wrap gap-2 xl:justify-end">
+              {summary.map((item) => (
+                <div className={`rounded-md border border-slate-200 px-3 py-2 ${item.tone ?? "bg-slate-50"}`} key={item.label}>
+                  <p className="text-xs font-semibold uppercase text-slate-500">{item.label}</p>
+                  <p className="mt-1 text-sm font-semibold text-workday-ink">{item.value}</p>
+                </div>
+              ))}
+            </div>
+            {onExport ? (
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2"
+                onClick={onExport}
+                type="button"
+              >
+                <Download className="h-4 w-4" aria-hidden="true" />
+                Export Current View
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -107,7 +135,15 @@ export function ReportTable<TData extends object>({
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr className="hover:bg-blue-50/40" key={row.id}>
+              <tr
+                className={`hover:bg-blue-50/40 ${onRowSelect && row.original.employeeId ? "cursor-pointer" : ""}`}
+                key={row.id}
+                onClick={() => {
+                  if (onRowSelect && row.original.employeeId) {
+                    onRowSelect(row.original.employeeId);
+                  }
+                }}
+              >
                 {row.getVisibleCells().map((cell) => (
                   <td className="border-b border-slate-100 px-4 py-3 text-slate-700" key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

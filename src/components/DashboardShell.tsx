@@ -1,9 +1,11 @@
 import { dashboardTabs } from "../data/navigation";
 import { getExceptionBreakdown, getWorkers } from "../lib/calculations";
 import type { DashboardFilters } from "../types/dashboard";
+import { useState } from "react";
 import { EmptyState } from "./EmptyState";
 import { OverviewPreview } from "./OverviewPreview";
 import { ReportViews } from "./ReportViews";
+import { WorkerDrillDown } from "./WorkerDrillDown";
 
 interface DashboardShellProps {
   activeTab: string;
@@ -14,8 +16,11 @@ interface DashboardShellProps {
 }
 
 export function DashboardShell({ activeTab, filters, isRefreshing, onClearFilters, onTabChange }: DashboardShellProps) {
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [acknowledgedEmployeeIds, setAcknowledgedEmployeeIds] = useState<Set<string>>(new Set());
   const breakdown = getExceptionBreakdown(filters);
   const visibleWorkers = getWorkers(filters);
+  const acknowledgedCount = visibleWorkers.filter((worker) => acknowledgedEmployeeIds.has(worker.employeeId)).length;
   const tabBadgeMap = new Map([
     ["overtime", breakdown.find((item) => item.label === "Overtime")?.count ?? 0],
     ["missing-time", breakdown.find((item) => item.label === "Missing Time")?.count ?? 0],
@@ -73,16 +78,35 @@ export function DashboardShell({ activeTab, filters, isRefreshing, onClearFilter
         })}
       </nav>
 
-      {activeTab === "overview" ? (
-        <OverviewPreview filters={filters} onTabChange={onTabChange} />
-      ) : currentBadge === 0 && activeTab !== "payroll-costs" && activeTab !== "documentation" ? (
-        <EmptyState
-          message={`No ${currentTab.label.toLowerCase()} exceptions match the current shared prompts.`}
-          title={`No ${currentTab.label.toLowerCase()} exceptions`}
-        />
-      ) : (
-        <ReportViews activeTab={activeTab} filters={filters} />
-      )}
+      <div className="space-y-5">
+        {activeTab === "overview" ? (
+          <OverviewPreview filters={filters} onTabChange={onTabChange} />
+        ) : currentBadge === 0 && activeTab !== "payroll-costs" && activeTab !== "documentation" ? (
+          <EmptyState
+            message={`No ${currentTab.label.toLowerCase()} exceptions match the current shared prompts.`}
+            title={`No ${currentTab.label.toLowerCase()} exceptions`}
+          />
+        ) : (
+          <ReportViews
+            acknowledgedCount={acknowledgedCount}
+            activeTab={activeTab}
+            filters={filters}
+            onWorkerSelect={setSelectedEmployeeId}
+          />
+        )}
+
+        {selectedEmployeeId ? (
+          <WorkerDrillDown
+            employeeId={selectedEmployeeId}
+            filters={filters}
+            isAcknowledged={acknowledgedEmployeeIds.has(selectedEmployeeId)}
+            onAcknowledge={(employeeId) =>
+              setAcknowledgedEmployeeIds((current) => new Set(current).add(employeeId))
+            }
+            onClose={() => setSelectedEmployeeId(null)}
+          />
+        ) : null}
+      </div>
     </section>
   );
 }
