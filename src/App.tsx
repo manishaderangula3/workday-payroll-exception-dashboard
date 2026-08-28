@@ -5,7 +5,9 @@ import { FilterSummary } from "./components/FilterSummary";
 import { getFilterOptions } from "./lib/filterOptions";
 import { RoleLensPanel } from "./components/RoleLensPanel";
 import { roleLenses } from "./data/roleLenses";
-import type { DashboardFilters, RoleKey } from "./types/dashboard";
+import { ThresholdControls } from "./components/ThresholdControls";
+import { defaultThresholds } from "./data/thresholds";
+import type { DashboardFilters, DashboardThresholds, RoleKey } from "./types/dashboard";
 
 const filterOptions = getFilterOptions();
 const defaultFilters: DashboardFilters = {
@@ -18,6 +20,7 @@ const defaultFilters: DashboardFilters = {
 
 export function App() {
   const [filters, setFilters] = useState<DashboardFilters>(defaultFilters);
+  const [thresholds, setThresholds] = useState<DashboardThresholds>(defaultThresholds);
   const [activeRole, setActiveRole] = useState<RoleKey>("workday-payroll-analyst");
   const [activeTab, setActiveTab] = useState("overview");
   const [lastUpdated, setLastUpdated] = useState(new Date());
@@ -26,6 +29,10 @@ export function App() {
 
   function handleFilterChange(updates: Partial<DashboardFilters>) {
     setFilters((currentFilters) => ({ ...currentFilters, ...updates }));
+  }
+
+  function handleThresholdChange(updates: Partial<DashboardThresholds>) {
+    setThresholds((currentThresholds) => ({ ...currentThresholds, ...updates }));
   }
 
   function handleRefresh() {
@@ -53,7 +60,12 @@ export function App() {
       />
 
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-        <RoleLensPanel activeRole={activeRole} onRoleChange={setActiveRole} />
+        <RoleLensPanel activeRole={activeRole} onRoleChange={setActiveRole} onTabChange={setActiveTab} />
+        <ThresholdControls
+          onReset={() => setThresholds(defaultThresholds)}
+          onThresholdChange={handleThresholdChange}
+          thresholds={thresholds}
+        />
         <FilterSummary filters={filters} isRefreshing={isRefreshing} lastUpdated={lastUpdated} />
         <DashboardShell
           activeTab={activeTab}
@@ -61,6 +73,7 @@ export function App() {
           isRefreshing={isRefreshing}
           onClearFilters={handleClearFilters}
           onTabChange={setActiveTab}
+          thresholds={thresholds}
         />
       </main>
     </div>

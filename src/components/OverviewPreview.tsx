@@ -1,14 +1,12 @@
 import { AlertTriangle, Clock, DollarSign, FileSpreadsheet, Users } from "lucide-react";
 import { getOverviewMetrics } from "../lib/calculations";
 import {
-  formatCompactCurrency,
   formatCurrency,
   formatDateShort,
-  formatHours,
-  formatPercent,
-  formatVariancePercent
+  formatHours
 } from "../lib/formatters";
-import type { DashboardFilters, KpiCard, Severity } from "../types/dashboard";
+import { buildOverviewKpiCards } from "../lib/kpiCards";
+import type { DashboardFilters, DashboardThresholds, Severity } from "../types/dashboard";
 import { ExecutiveHighlights } from "./ExecutiveHighlights";
 import { TrendVisualizations } from "./TrendVisualizations";
 
@@ -24,56 +22,12 @@ const icons = [DollarSign, Users, AlertTriangle, Clock, FileSpreadsheet];
 interface OverviewPreviewProps {
   filters: DashboardFilters;
   onTabChange: (tabId: string) => void;
+  thresholds: DashboardThresholds;
 }
 
-export function OverviewPreview({ filters, onTabChange }: OverviewPreviewProps) {
+export function OverviewPreview({ filters, onTabChange, thresholds }: OverviewPreviewProps) {
   const metrics = getOverviewMetrics(filters);
-  const kpis: KpiCard[] = [
-    {
-      label: "Total Payroll Cost",
-      value: formatCompactCurrency(metrics.totalPayrollCost),
-      detail: "Current period payroll cost",
-      severity:
-        metrics.priorPayrollCost > 0 && metrics.totalPayrollCost / metrics.priorPayrollCost - 1 > 0.05
-          ? "warning"
-          : "success",
-      trend: formatVariancePercent(metrics.totalPayrollCost, metrics.priorPayrollCost),
-      target: "Alert if variance > 5%"
-    },
-    {
-      label: "Payroll Completion",
-      value: formatPercent(metrics.payrollCompletionRate),
-      detail: `${metrics.workersProcessed} of ${metrics.workersExpected} workers complete`,
-      severity: metrics.payrollCompletionRate < 0.9 ? "critical" : metrics.payrollCompletionRate < 0.95 ? "warning" : "success",
-      trend: "Target 100%",
-      progress: metrics.payrollCompletionRate,
-      target: "Green at 95%+"
-    },
-    {
-      label: "Workers with Exceptions",
-      value: `${metrics.openExceptionWorkers}`,
-      detail: "Across time, deductions, and tax",
-      severity: metrics.openExceptionWorkers > 5 ? "critical" : metrics.openExceptionWorkers > 0 ? "warning" : "success",
-      trend: `${metrics.criticalExceptionWorkers} critical`,
-      target: "Target < 2%"
-    },
-    {
-      label: "Missing Time",
-      value: `${metrics.missingTimeWorkers}`,
-      detail: "Workers with unsubmitted time",
-      severity: metrics.missingTimeWorkers > 5 ? "critical" : metrics.missingTimeWorkers > 0 ? "warning" : "success",
-      trend: `${metrics.workersNearDeadline} near deadline`,
-      target: "Target 0"
-    },
-    {
-      label: "OT Hours",
-      value: metrics.overtimeHours.toFixed(1),
-      detail: `${formatCompactCurrency(metrics.overtimeCost)} estimated cost`,
-      severity: metrics.overtimeHours > 20 ? "warning" : metrics.overtimeHours > 0 ? "warning" : "success",
-      trend: `${formatPercent(metrics.overtimeTrendPercent)} vs prior period`,
-      target: "Monitor > 40 hours/week"
-    }
-  ];
+  const kpis = buildOverviewKpiCards(metrics, thresholds);
 
   return (
     <section className="space-y-5">

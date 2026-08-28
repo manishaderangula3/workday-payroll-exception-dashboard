@@ -1,6 +1,6 @@
 import { dashboardTabs } from "../data/navigation";
 import { getExceptionBreakdown, getWorkers } from "../lib/calculations";
-import type { DashboardFilters } from "../types/dashboard";
+import type { DashboardFilters, DashboardThresholds } from "../types/dashboard";
 import { useState } from "react";
 import { EmptyState } from "./EmptyState";
 import { OverviewPreview } from "./OverviewPreview";
@@ -13,9 +13,17 @@ interface DashboardShellProps {
   filters: DashboardFilters;
   isRefreshing: boolean;
   onClearFilters: () => void;
+  thresholds: DashboardThresholds;
 }
 
-export function DashboardShell({ activeTab, filters, isRefreshing, onClearFilters, onTabChange }: DashboardShellProps) {
+export function DashboardShell({
+  activeTab,
+  filters,
+  isRefreshing,
+  onClearFilters,
+  onTabChange,
+  thresholds
+}: DashboardShellProps) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [acknowledgedEmployeeIds, setAcknowledgedEmployeeIds] = useState<Set<string>>(new Set());
   const breakdown = getExceptionBreakdown(filters);
@@ -80,7 +88,7 @@ export function DashboardShell({ activeTab, filters, isRefreshing, onClearFilter
 
       <div className="space-y-5">
         {activeTab === "overview" ? (
-          <OverviewPreview filters={filters} onTabChange={onTabChange} />
+          <OverviewPreview filters={filters} onTabChange={onTabChange} thresholds={thresholds} />
         ) : currentBadge === 0 && activeTab !== "payroll-costs" && activeTab !== "documentation" ? (
           <EmptyState
             message={`No ${currentTab.label.toLowerCase()} exceptions match the current shared prompts.`}

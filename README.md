@@ -1,6 +1,6 @@
 # Workday Payroll Exception & Reporting Dashboard
 
-![Status](https://img.shields.io/badge/status-documentation_complete-brightgreen)
+![Status](https://img.shields.io/badge/status-dashboard_build_in_progress-brightgreen)
 ![Platform](https://img.shields.io/badge/platform-Workday-blue)
 ![Reports](https://img.shields.io/badge/reports-Advanced%20%7C%20Matrix%20%7C%20Composite-1976D2)
 ![Exports](https://img.shields.io/badge/export-Microsoft%20Excel-217346)
@@ -41,6 +41,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Excel export for Finance, audit, and offline analysis
 - Security, UAT, performance, and defect documentation for production readiness
 - Interactive dashboard shell with role-based presentation lens for payroll, HRIS, reporting, systems, and consulting roles
+- Dynamic KPI threshold controls for live presentation scenarios and configurable alert logic
 
 ## Interactive Dashboard App
 
@@ -106,6 +107,14 @@ Day 7 implementation adds:
 - Action workflow buttons for manager notification, time entry review, issue acknowledgement, and worker snapshot export
 - CSV export for each current filtered report view with audit metadata
 - Test coverage for CSV generation and worker snapshot joins
+
+Day 8 implementation adds:
+
+- Expanded role-based presentation lens for Workday Payroll Analyst, HRIS Analyst, Functional Analyst, Payroll Systems Analyst, Reporting Analyst, Consultant, Integration Analyst, HR Systems Analyst, and Payroll Operations Analyst roles
+- Interview-ready pitch, proof points, role-specific metrics, workflow steps, and quick tab navigation for each role
+- Dynamic KPI threshold controls for completion, exception, missing time, overtime, and payroll cost variance rules
+- Reusable KPI card calculation helper so dashboard severity, targets, and trend messaging recalculate from current thresholds
+- Test coverage proving KPI severity changes when presentation thresholds are modified
 
 ## Project Structure
 

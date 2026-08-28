@@ -14,6 +14,14 @@ export interface RoleLens {
   title: string;
   focus: string;
   proofPoints: string[];
+  interviewPitch: string;
+  primaryTabs: Array<{
+    tabId: string;
+    label: string;
+  }>;
+  metricsToWatch: string[];
+  workflow: string[];
+  presentationValue: string;
 }
 
 export interface DashboardTab {
@@ -32,6 +40,18 @@ export interface KpiCard {
   trend: string;
   progress?: number;
   target?: string;
+}
+
+export interface DashboardThresholds {
+  payrollCostVarianceWarning: number;
+  completionYellow: number;
+  completionRed: number;
+  exceptionYellow: number;
+  exceptionRed: number;
+  missingTimeYellow: number;
+  missingTimeRed: number;
+  overtimeWarningHours: number;
+  overtimeCriticalHours: number;
 }
 
 export type WorkerType = "Employee" | "Contingent Worker";
