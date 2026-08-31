@@ -1,6 +1,6 @@
 # Workday Payroll Exception & Reporting Dashboard
 
-![Status](https://img.shields.io/badge/status-dashboard_build_in_progress-brightgreen)
+![Status](https://img.shields.io/badge/status-portfolio_ready-brightgreen)
 ![Platform](https://img.shields.io/badge/platform-Workday-blue)
 ![Reports](https://img.shields.io/badge/reports-Advanced%20%7C%20Matrix%20%7C%20Composite-1976D2)
 ![Exports](https://img.shields.io/badge/export-Microsoft%20Excel-217346)
@@ -116,6 +116,19 @@ Day 8 implementation adds:
 - Reusable KPI card calculation helper so dashboard severity, targets, and trend messaging recalculate from current thresholds
 - Test coverage proving KPI severity changes when presentation thresholds are modified
 
+Day 9 implementation adds:
+
+- Dependency vulnerability audit and remediation for the Vite/esbuild test tooling chain
+- Static source scan for unsafe browser APIs and secret-like patterns
+- Accessibility and responsive QA checklist for the dashboard controls, tabs, tables, cards, and exports
+- Documented validation coverage for KPI calculations, report rows, CSV export, and worker drill-down snapshots
+
+Day 10 implementation adds:
+
+- Portfolio-ready project status and final README polish
+- Final QA/security audit document for recruiter, hiring manager, and stakeholder review
+- Production build, test, and local preview verification after dependency remediation
+
 ## Project Structure
 
 ```text
@@ -176,7 +189,8 @@ workday-payroll-exception-dashboard/
 `-- testing/
     |-- Test_Cases.md
     |-- UAT_Scenarios.md
-    `-- Defect_Log.md
+    |-- Defect_Log.md
+    `-- Dashboard_QA_Security_Audit.md
 ```
 
 ## Reports Built
@@ -275,9 +289,10 @@ Start here:
 5. Review [reports/](reports/) for detailed Workday report specifications.
 6. Review [dashboards/](dashboards/) for composite dashboard, layout, and KPI definitions.
 7. Use [testing/](testing/) for QA test cases, UAT scenarios, and defect tracking.
-8. See [samples/](samples/) for sample exports and portfolio screenshot placeholder location.
-9. Read [docs/Assumptions.md](docs/Assumptions.md) and [docs/Lessons_Learned.md](docs/Lessons_Learned.md) for final review, constraints, risks, and retrospective notes.
-10. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
+8. Review [testing/Dashboard_QA_Security_Audit.md](testing/Dashboard_QA_Security_Audit.md) for the final dashboard QA and vulnerability audit summary.
+9. See [samples/](samples/) for sample exports and portfolio screenshot placeholder location.
+10. Read [docs/Assumptions.md](docs/Assumptions.md) and [docs/Lessons_Learned.md](docs/Lessons_Learned.md) for final review, constraints, risks, and retrospective notes.
+11. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
 
 Run the dashboard locally:
 
@@ -306,4 +321,4 @@ Before implementing this design in a live Workday tenant:
 
 ## Repository Status
 
-This repository is a completed documentation and portfolio artifact. It is designed to demonstrate Workday reporting analysis, dashboard design, calculated field planning, QA/UAT documentation, and payroll operations understanding.
+This repository is a completed documentation and coded portfolio artifact. It is designed to demonstrate Workday reporting analysis, dashboard design, calculated field planning, QA/UAT documentation, payroll operations understanding, interactive dashboard delivery, and basic dependency vulnerability remediation.
