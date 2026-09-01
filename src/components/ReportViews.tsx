@@ -9,7 +9,7 @@ import {
 } from "../lib/reportRows";
 import { type CsvRow, downloadCsv, sanitizeFileName } from "../lib/csvExport";
 import { formatCurrency, formatDateShort, formatHours } from "../lib/formatters";
-import type { DashboardFilters, PayrollStatus } from "../types/dashboard";
+import type { DashboardData, DashboardFilters, PayrollStatus } from "../types/dashboard";
 import type {
   DeductionExceptionReportRow,
   MissingTimeReportRow,
@@ -22,6 +22,7 @@ import { StatusBadge } from "./StatusBadge";
 
 interface ReportViewsProps {
   activeTab: string;
+  data: DashboardData;
   filters: DashboardFilters;
   acknowledgedCount: number;
   onWorkerSelect: (employeeId: string) => void;
@@ -384,13 +385,13 @@ function renderDocumentationView() {
   );
 }
 
-export function ReportViews({ acknowledgedCount, activeTab, filters, onWorkerSelect }: ReportViewsProps) {
+export function ReportViews({ acknowledgedCount, activeTab, data, filters, onWorkerSelect }: ReportViewsProps) {
   if (activeTab === "documentation") {
     return renderDocumentationView();
   }
 
   if (activeTab === "payroll-costs") {
-    const rows = getPayrollCostReportRows(filters);
+    const rows = getPayrollCostReportRows(filters, data);
     const totals = rows.reduce(
       (summary, row) => ({
         grossPay: summary.grossPay + row.grossPay,
@@ -423,7 +424,7 @@ export function ReportViews({ acknowledgedCount, activeTab, filters, onWorkerSel
   }
 
   if (activeTab === "overtime") {
-    const rows = getOvertimeReportRows(filters);
+    const rows = getOvertimeReportRows(filters, data);
     const totalHours = rows.reduce((total, row) => total + row.overtimeHours, 0);
     const totalCost = rows.reduce((total, row) => total + row.overtimeCost, 0);
     const redAlerts = rows.filter((row) => row.alert === "Red").length;
@@ -449,7 +450,7 @@ export function ReportViews({ acknowledgedCount, activeTab, filters, onWorkerSel
   }
 
   if (activeTab === "missing-time") {
-    const rows = getMissingTimeReportRows(filters);
+    const rows = getMissingTimeReportRows(filters, data);
     const totalMissingDays = rows.reduce((total, row) => total + row.missingDays, 0);
 
     return (
@@ -473,7 +474,7 @@ export function ReportViews({ acknowledgedCount, activeTab, filters, onWorkerSel
   }
 
   if (activeTab === "deductions") {
-    const rows = getDeductionExceptionReportRows(filters);
+    const rows = getDeductionExceptionReportRows(filters, data);
     const totalVariance = rows.reduce((total, row) => total + row.variance, 0);
     const arrearsBalance = rows.reduce((total, row) => total + row.arrearsBalance, 0);
 
@@ -497,7 +498,7 @@ export function ReportViews({ acknowledgedCount, activeTab, filters, onWorkerSel
     );
   }
 
-  const rows = getTaxExceptionReportRows(filters);
+  const rows = getTaxExceptionReportRows(filters, data);
   const totalVariance = rows.reduce((total, row) => total + row.variance, 0);
 
   return (

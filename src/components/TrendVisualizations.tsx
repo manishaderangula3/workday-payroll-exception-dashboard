@@ -17,9 +17,10 @@ import {
   getPayrollTrend
 } from "../lib/calculations";
 import { formatCompactCurrency, formatCurrency, formatPercent } from "../lib/formatters";
-import type { DashboardFilters, ExceptionBreakdownItem } from "../types/dashboard";
+import type { DashboardData, DashboardFilters, ExceptionBreakdownItem } from "../types/dashboard";
 
 interface TrendVisualizationsProps {
+  data: DashboardData;
   filters: DashboardFilters;
   onTabChange: (tabId: string) => void;
 }
@@ -40,11 +41,11 @@ function getMatrixCellClass(value: number): string {
   return "bg-slate-50 text-slate-500";
 }
 
-export function TrendVisualizations({ filters, onTabChange }: TrendVisualizationsProps) {
-  const payrollTrend = getPayrollTrend(filters);
-  const exceptionBreakdown = getExceptionBreakdown(filters);
-  const overtimeTrend = getOvertimeTrend(filters);
-  const overtimeMatrix = getOvertimeMatrix(filters);
+export function TrendVisualizations({ data, filters, onTabChange }: TrendVisualizationsProps) {
+  const payrollTrend = getPayrollTrend(filters, data);
+  const exceptionBreakdown = getExceptionBreakdown(filters, data);
+  const overtimeTrend = getOvertimeTrend(filters, data);
+  const overtimeMatrix = getOvertimeMatrix(filters, data);
   const weekLabels = [...new Set(overtimeTrend.map((point) => point.weekLabel))];
   const totalExceptions = exceptionBreakdown.reduce((total, item) => total + item.count, 0);
 

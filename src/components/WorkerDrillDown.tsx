@@ -11,10 +11,11 @@ import { useState } from "react";
 import { downloadCsv } from "../lib/csvExport";
 import { formatCurrency, formatDateShort, formatHours } from "../lib/formatters";
 import { getWorkerSnapshot } from "../lib/workerSnapshot";
-import type { DashboardFilters } from "../types/dashboard";
+import type { DashboardData, DashboardFilters } from "../types/dashboard";
 import { StatusBadge } from "./StatusBadge";
 
 interface WorkerDrillDownProps {
+  data: DashboardData;
   employeeId: string;
   filters: DashboardFilters;
   isAcknowledged: boolean;
@@ -33,13 +34,14 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 
 export function WorkerDrillDown({
   employeeId,
+  data,
   filters,
   isAcknowledged,
   onAcknowledge,
   onClose
 }: WorkerDrillDownProps) {
   const [lastAction, setLastAction] = useState<string | null>(null);
-  const snapshot = getWorkerSnapshot(employeeId, filters);
+  const snapshot = getWorkerSnapshot(employeeId, filters, data);
 
   if (!snapshot) {
     return null;

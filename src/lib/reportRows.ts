@@ -6,7 +6,8 @@ import {
   getTimeEntries,
   getWorkers
 } from "./calculations";
-import type { DashboardFilters, Worker } from "../types/dashboard";
+import { sampleDashboardData } from "../data";
+import type { DashboardData, DashboardFilters, Worker } from "../types/dashboard";
 import type {
   DeductionExceptionReportRow,
   MissingTimeReportRow,
@@ -15,8 +16,8 @@ import type {
   TaxExceptionReportRow
 } from "../types/reports";
 
-function workerMap(filters: DashboardFilters): Map<string, Worker> {
-  return new Map(getWorkers(filters).map((worker) => [worker.employeeId, worker]));
+function workerMap(filters: DashboardFilters, data: DashboardData): Map<string, Worker> {
+  return new Map(getWorkers(filters, data).map((worker) => [worker.employeeId, worker]));
 }
 
 function getWorkerOrThrow(workersById: Map<string, Worker>, employeeId: string): Worker {
@@ -41,10 +42,13 @@ function getOvertimeAlert(overtimeHours: number): OvertimeReportRow["alert"] {
   return "None";
 }
 
-export function getPayrollCostReportRows(filters: DashboardFilters): PayrollCostReportRow[] {
-  const workersById = workerMap(filters);
+export function getPayrollCostReportRows(
+  filters: DashboardFilters,
+  data: DashboardData = sampleDashboardData
+): PayrollCostReportRow[] {
+  const workersById = workerMap(filters, data);
 
-  return getPayrollResults(filters)
+  return getPayrollResults(filters, data)
     .map((result) => {
       const worker = getWorkerOrThrow(workersById, result.employeeId);
       const employerCosts = result.employerBenefitCost + result.employerTaxCost;
@@ -68,10 +72,13 @@ export function getPayrollCostReportRows(filters: DashboardFilters): PayrollCost
     .sort((a, b) => a.department.localeCompare(b.department) || a.employeeName.localeCompare(b.employeeName));
 }
 
-export function getOvertimeReportRows(filters: DashboardFilters): OvertimeReportRow[] {
-  const workersById = workerMap(filters);
+export function getOvertimeReportRows(
+  filters: DashboardFilters,
+  data: DashboardData = sampleDashboardData
+): OvertimeReportRow[] {
+  const workersById = workerMap(filters, data);
 
-  return getTimeEntries(filters)
+  return getTimeEntries(filters, data)
     .filter((entry) => entry.overtimeHours > 0)
     .map((entry) => {
       const worker = getWorkerOrThrow(workersById, entry.employeeId);
@@ -86,7 +93,7 @@ export function getOvertimeReportRows(filters: DashboardFilters): OvertimeReport
         regularHours: entry.regularHours,
         overtimeHours: entry.overtimeHours,
         doubleTimeHours: entry.doubleTimeHours,
-        overtimeCost: getOvertimeCost(entry),
+        overtimeCost: getOvertimeCost(entry, data),
         weekEndingDate: entry.weekEndingDate,
         payPeriod: entry.payPeriod,
         alert: getOvertimeAlert(entry.overtimeHours)
@@ -95,10 +102,13 @@ export function getOvertimeReportRows(filters: DashboardFilters): OvertimeReport
     .sort((a, b) => b.overtimeHours - a.overtimeHours);
 }
 
-export function getMissingTimeReportRows(filters: DashboardFilters): MissingTimeReportRow[] {
-  const workersById = workerMap(filters);
+export function getMissingTimeReportRows(
+  filters: DashboardFilters,
+  data: DashboardData = sampleDashboardData
+): MissingTimeReportRow[] {
+  const workersById = workerMap(filters, data);
 
-  return getTimeEntries(filters)
+  return getTimeEntries(filters, data)
     .filter((entry) => entry.missingDates.length > 0)
     .map((entry) => {
       const worker = getWorkerOrThrow(workersById, entry.employeeId);
@@ -122,10 +132,13 @@ export function getMissingTimeReportRows(filters: DashboardFilters): MissingTime
     .sort((a, b) => b.missingDays - a.missingDays);
 }
 
-export function getDeductionExceptionReportRows(filters: DashboardFilters): DeductionExceptionReportRow[] {
-  const workersById = workerMap(filters);
+export function getDeductionExceptionReportRows(
+  filters: DashboardFilters,
+  data: DashboardData = sampleDashboardData
+): DeductionExceptionReportRow[] {
+  const workersById = workerMap(filters, data);
 
-  return getDeductionExceptions(filters)
+  return getDeductionExceptions(filters, data)
     .map((result) => {
       const worker = getWorkerOrThrow(workersById, result.employeeId);
 
@@ -147,10 +160,13 @@ export function getDeductionExceptionReportRows(filters: DashboardFilters): Dedu
     .sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance));
 }
 
-export function getTaxExceptionReportRows(filters: DashboardFilters): TaxExceptionReportRow[] {
-  const workersById = workerMap(filters);
+export function getTaxExceptionReportRows(
+  filters: DashboardFilters,
+  data: DashboardData = sampleDashboardData
+): TaxExceptionReportRow[] {
+  const workersById = workerMap(filters, data);
 
-  return getTaxExceptions(filters)
+  return getTaxExceptions(filters, data)
     .map((result) => {
       const worker = getWorkerOrThrow(workersById, result.employeeId);
 

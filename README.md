@@ -42,6 +42,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Security, UAT, performance, and defect documentation for production readiness
 - Interactive dashboard shell with role-based presentation lens for payroll, HRIS, reporting, systems, and consulting roles
 - Dynamic KPI threshold controls for live presentation scenarios and configurable alert logic
+- CSV upload mode for replacing sample data with Workday-style report exports and recalculating dashboard results
 
 ## Interactive Dashboard App
 
@@ -129,6 +130,15 @@ Day 10 implementation adds:
 - Final QA/security audit document for recruiter, hiring manager, and stakeholder review
 - Production build, test, and local preview verification after dependency remediation
 
+Real-time data extension adds:
+
+- Sample Data and Uploaded Data modes
+- CSV upload cards for Workers, Payroll Results, Time Entries, Deduction Results, and Tax Results
+- Validation messages for missing columns and invalid rows
+- Active data bundle used by filters, KPI cards, charts, report tabs, exports, and worker drill-downs
+- Derived KPI history and overtime trend rows from uploaded payroll/time data
+- Future Workday RaaS/API integration guide with secure backend proxy recommendation
+
 ## Project Structure
 
 ```text
@@ -159,6 +169,7 @@ workday-payroll-exception-dashboard/
 |   |-- Functional_Design.md
 |   |-- Technical_Design.md
 |   |-- Assumptions.md
+|   |-- Real_Time_Data_Integration.md
 |   `-- Lessons_Learned.md
 |-- report-design/
 |   |-- Business_Objects.md
@@ -292,7 +303,8 @@ Start here:
 8. Review [testing/Dashboard_QA_Security_Audit.md](testing/Dashboard_QA_Security_Audit.md) for the final dashboard QA and vulnerability audit summary.
 9. See [samples/](samples/) for sample exports and portfolio screenshot placeholder location.
 10. Read [docs/Assumptions.md](docs/Assumptions.md) and [docs/Lessons_Learned.md](docs/Lessons_Learned.md) for final review, constraints, risks, and retrospective notes.
-11. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
+11. Review [docs/Real_Time_Data_Integration.md](docs/Real_Time_Data_Integration.md) for CSV upload templates and future Workday RaaS/API design.
+12. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
 
 Run the dashboard locally:
 

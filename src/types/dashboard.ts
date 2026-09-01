@@ -165,6 +165,34 @@ export interface FilterOptions {
   departments: string[];
 }
 
+export interface DashboardData {
+  workers: Worker[];
+  payrollResults: PayrollResult[];
+  timeEntries: TimeEntry[];
+  deductionResults: DeductionResult[];
+  taxResults: TaxResult[];
+  kpiHistory: KpiHistoryPoint[];
+  overtimeTrends: OvertimeTrendPoint[];
+  payPeriods: string[];
+}
+
+export type DataSourceMode = "sample" | "uploaded";
+
+export type UploadDatasetKey = "workers" | "payrollResults" | "timeEntries" | "deductionResults" | "taxResults";
+
+export interface UploadedDatasetSummary {
+  fileName: string;
+  loadedAt: string;
+  rowCount: number;
+}
+
+export interface UploadValidationMessage {
+  dataset: UploadDatasetKey;
+  message: string;
+  rowNumber?: number;
+  severity: "error" | "warning";
+}
+
 export interface ExceptionBreakdownItem {
   label: "Overtime" | "Missing Time" | "Deductions" | "Tax Issues";
   count: number;

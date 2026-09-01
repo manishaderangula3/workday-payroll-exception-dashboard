@@ -6,7 +6,7 @@ import {
   formatHours
 } from "../lib/formatters";
 import { buildOverviewKpiCards } from "../lib/kpiCards";
-import type { DashboardFilters, DashboardThresholds, Severity } from "../types/dashboard";
+import type { DashboardData, DashboardFilters, DashboardThresholds, Severity } from "../types/dashboard";
 import { ExecutiveHighlights } from "./ExecutiveHighlights";
 import { TrendVisualizations } from "./TrendVisualizations";
 
@@ -20,13 +20,14 @@ const severityClasses: Record<Severity, string> = {
 const icons = [DollarSign, Users, AlertTriangle, Clock, FileSpreadsheet];
 
 interface OverviewPreviewProps {
+  data: DashboardData;
   filters: DashboardFilters;
   onTabChange: (tabId: string) => void;
   thresholds: DashboardThresholds;
 }
 
-export function OverviewPreview({ filters, onTabChange, thresholds }: OverviewPreviewProps) {
-  const metrics = getOverviewMetrics(filters);
+export function OverviewPreview({ data, filters, onTabChange, thresholds }: OverviewPreviewProps) {
+  const metrics = getOverviewMetrics(filters, data);
   const kpis = buildOverviewKpiCards(metrics, thresholds);
 
   return (
@@ -123,7 +124,7 @@ export function OverviewPreview({ filters, onTabChange, thresholds }: OverviewPr
         </section>
       </div>
 
-      <TrendVisualizations filters={filters} onTabChange={onTabChange} />
+      <TrendVisualizations data={data} filters={filters} onTabChange={onTabChange} />
 
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">

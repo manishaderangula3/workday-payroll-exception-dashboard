@@ -1,8 +1,12 @@
-import { deductionResults, payrollResults, taxResults, timeEntries, workers } from "../data";
-import type { DashboardFilters } from "../types/dashboard";
+import { sampleDashboardData } from "../data";
+import type { DashboardData, DashboardFilters } from "../types/dashboard";
 
-export function getWorkerSnapshot(employeeId: string, filters: DashboardFilters) {
-  const worker = workers.find((item) => item.employeeId === employeeId);
+export function getWorkerSnapshot(
+  employeeId: string,
+  filters: DashboardFilters,
+  data: DashboardData = sampleDashboardData
+) {
+  const worker = data.workers.find((item) => item.employeeId === employeeId);
 
   if (!worker) {
     return undefined;
@@ -10,15 +14,15 @@ export function getWorkerSnapshot(employeeId: string, filters: DashboardFilters)
 
   return {
     worker,
-    payroll: payrollResults.find(
+    payroll: data.payrollResults.find(
       (result) => result.employeeId === employeeId && result.payPeriod === filters.payPeriod
     ),
-    timeEntries: timeEntries.filter(
+    timeEntries: data.timeEntries.filter(
       (entry) => entry.employeeId === employeeId && entry.payPeriod === filters.payPeriod
     ),
-    deductions: deductionResults.filter(
+    deductions: data.deductionResults.filter(
       (deduction) => deduction.employeeId === employeeId && deduction.payPeriod === filters.payPeriod
     ),
-    taxes: taxResults.filter((tax) => tax.employeeId === employeeId && tax.payPeriod === filters.payPeriod)
+    taxes: data.taxResults.filter((tax) => tax.employeeId === employeeId && tax.payPeriod === filters.payPeriod)
   };
 }

@@ -1,6 +1,6 @@
 import { dashboardTabs } from "../data/navigation";
 import { getExceptionBreakdown, getWorkers } from "../lib/calculations";
-import type { DashboardFilters, DashboardThresholds } from "../types/dashboard";
+import type { DashboardData, DashboardFilters, DashboardThresholds } from "../types/dashboard";
 import { useState } from "react";
 import { EmptyState } from "./EmptyState";
 import { OverviewPreview } from "./OverviewPreview";
@@ -9,6 +9,7 @@ import { WorkerDrillDown } from "./WorkerDrillDown";
 
 interface DashboardShellProps {
   activeTab: string;
+  data: DashboardData;
   onTabChange: (tab: string) => void;
   filters: DashboardFilters;
   isRefreshing: boolean;
@@ -18,6 +19,7 @@ interface DashboardShellProps {
 
 export function DashboardShell({
   activeTab,
+  data,
   filters,
   isRefreshing,
   onClearFilters,
@@ -26,8 +28,8 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [acknowledgedEmployeeIds, setAcknowledgedEmployeeIds] = useState<Set<string>>(new Set());
-  const breakdown = getExceptionBreakdown(filters);
-  const visibleWorkers = getWorkers(filters);
+  const breakdown = getExceptionBreakdown(filters, data);
+  const visibleWorkers = getWorkers(filters, data);
   const acknowledgedCount = visibleWorkers.filter((worker) => acknowledgedEmployeeIds.has(worker.employeeId)).length;
   const tabBadgeMap = new Map([
     ["overtime", breakdown.find((item) => item.label === "Overtime")?.count ?? 0],
@@ -88,7 +90,7 @@ export function DashboardShell({
 
       <div className="space-y-5">
         {activeTab === "overview" ? (
-          <OverviewPreview filters={filters} onTabChange={onTabChange} thresholds={thresholds} />
+          <OverviewPreview data={data} filters={filters} onTabChange={onTabChange} thresholds={thresholds} />
         ) : currentBadge === 0 && activeTab !== "payroll-costs" && activeTab !== "documentation" ? (
           <EmptyState
             message={`No ${currentTab.label.toLowerCase()} exceptions match the current shared prompts.`}
@@ -98,6 +100,7 @@ export function DashboardShell({
           <ReportViews
             acknowledgedCount={acknowledgedCount}
             activeTab={activeTab}
+            data={data}
             filters={filters}
             onWorkerSelect={setSelectedEmployeeId}
           />
@@ -106,6 +109,7 @@ export function DashboardShell({
         {selectedEmployeeId ? (
           <WorkerDrillDown
             employeeId={selectedEmployeeId}
+            data={data}
             filters={filters}
             isAcknowledged={acknowledgedEmployeeIds.has(selectedEmployeeId)}
             onAcknowledge={(employeeId) =>
