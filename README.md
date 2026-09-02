@@ -43,6 +43,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Interactive dashboard shell with role-based presentation lens for payroll, HRIS, reporting, systems, and consulting roles
 - Dynamic KPI threshold controls for live presentation scenarios and configurable alert logic
 - CSV upload mode for replacing sample data with Workday-style report exports and recalculating dashboard results
+- Production hardening for upload validation, CSV export safety, runtime error handling, and readiness tracking
 
 ## Interactive Dashboard App
 
@@ -139,6 +140,13 @@ Real-time data extension adds:
 - Derived KPI history and overtime trend rows from uploaded payroll/time data
 - Future Workday RaaS/API integration guide with secure backend proxy recommendation
 
+Production hardening adds:
+
+- Upload file validation for CSV type, empty files, and maximum file size
+- Spreadsheet formula-injection mitigation for CSV exports
+- Runtime error boundary with reset path
+- Production readiness checklist separating portfolio readiness from Workday tenant go-live tasks
+
 ## Project Structure
 
 ```text
@@ -170,6 +178,7 @@ workday-payroll-exception-dashboard/
 |   |-- Technical_Design.md
 |   |-- Assumptions.md
 |   |-- Real_Time_Data_Integration.md
+|   |-- Production_Readiness_Checklist.md
 |   `-- Lessons_Learned.md
 |-- report-design/
 |   |-- Business_Objects.md
@@ -304,7 +313,8 @@ Start here:
 9. See [samples/](samples/) for sample exports and portfolio screenshot placeholder location.
 10. Read [docs/Assumptions.md](docs/Assumptions.md) and [docs/Lessons_Learned.md](docs/Lessons_Learned.md) for final review, constraints, risks, and retrospective notes.
 11. Review [docs/Real_Time_Data_Integration.md](docs/Real_Time_Data_Integration.md) for CSV upload templates and future Workday RaaS/API design.
-12. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
+12. Review [docs/Production_Readiness_Checklist.md](docs/Production_Readiness_Checklist.md) for coded-dashboard readiness and Workday tenant go-live requirements.
+13. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
 
 Run the dashboard locally:
 

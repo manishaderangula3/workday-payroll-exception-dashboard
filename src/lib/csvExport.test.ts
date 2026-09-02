@@ -25,4 +25,17 @@ describe("csv export helpers", () => {
   it("sanitizes report names for download filenames", () => {
     expect(sanitizeFileName("Payroll Cost Summary Report")).toBe("payroll-cost-summary-report");
   });
+
+  it("neutralizes spreadsheet formula injection values", () => {
+    const csv = buildCsvContent([
+      {
+        employee: "W-2001",
+        note: "=HYPERLINK(\"http://example.com\")",
+        adjustment: "+100"
+      }
+    ]);
+
+    expect(csv).toContain('"\'=HYPERLINK(""http://example.com"")"');
+    expect(csv).toContain("'+100");
+  });
 });

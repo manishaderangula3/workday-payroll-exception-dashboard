@@ -151,3 +151,11 @@ Based on the current sample defect log, production readiness is not yet approved
 - Performance remediation is required for large organizations before Payroll Manager production rollout.
 
 Production migration can proceed only after Critical defects are resolved and High defects are either resolved or accepted with documented business workaround.
+
+## 11. Coded Portfolio Dashboard Readiness Note
+
+This defect log models realistic Workday tenant testing outcomes. The open Critical and High defects above should be treated as tenant implementation examples, not current blockers in the local React portfolio dashboard.
+
+For the coded dashboard layer, the latest QA/security audit is maintained in `testing/Dashboard_QA_Security_Audit.md`. As of 2026-09-02, the coded dashboard has passing tests, a clean dependency vulnerability audit, CSV upload validation, spreadsheet formula-injection mitigation for exports, and a runtime error boundary.
+
+For an actual Workday production rollout, keep this defect log open until tenant-specific security, calculated fields, prompt propagation, and performance results are retested with real Workday roles and sanitized production-volume data.

@@ -12,6 +12,7 @@ import { sampleDashboardData } from "./data";
 import {
   buildActiveDashboardData,
   parseUploadedDataset,
+  validateUploadFile,
   type UploadedDatasetMap
 } from "./lib/uploadedData";
 import type {
@@ -88,8 +89,29 @@ export function App() {
   }
 
   async function handleFileUpload(dataset: UploadDatasetKey, file: File) {
-    const text = await file.text();
-    const result = parseUploadedDataset(dataset, text);
+    const fileMessages = validateUploadFile(dataset, file);
+
+    if (fileMessages.length > 0) {
+      setUploadMessages(fileMessages);
+      return;
+    }
+
+    let result: ReturnType<typeof parseUploadedDataset>;
+
+    try {
+      const text = await file.text();
+      result = parseUploadedDataset(dataset, text);
+    } catch {
+      setUploadMessages([
+        {
+          dataset,
+          message: "Upload could not be read. Confirm the file is a valid CSV export and try again.",
+          severity: "error"
+        }
+      ]);
+      return;
+    }
+
     const blockingErrors = result.messages.filter((message) => message.severity === "error");
 
     setUploadMessages(result.messages);

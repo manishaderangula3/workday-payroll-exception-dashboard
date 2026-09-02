@@ -25,7 +25,10 @@ export const uploadDatasetLabels: Record<UploadDatasetKey, string> = {
   taxResults: "Tax Results"
 };
 
+export const maxUploadFileSizeBytes = 5 * 1024 * 1024;
+
 type CsvRecord = Record<string, string>;
+type UploadFileLike = Pick<File, "name" | "size" | "type">;
 
 const datasetRequiredFields: Record<UploadDatasetKey, string[]> = {
   workers: ["employeeId", "employeeName", "department", "manager", "company", "payGroup"],
@@ -131,6 +134,38 @@ export function parseCsvRows(text: string): string[][] {
   }
 
   return rows;
+}
+
+export function validateUploadFile(dataset: UploadDatasetKey, file: UploadFileLike): UploadValidationMessage[] {
+  const lowerName = file.name.toLowerCase();
+  const isCsv = lowerName.endsWith(".csv") || file.type === "text/csv" || file.type === "application/vnd.ms-excel";
+  const messages: UploadValidationMessage[] = [];
+
+  if (!isCsv) {
+    messages.push({
+      dataset,
+      message: "Upload must be a CSV file exported from Workday or a matching report source.",
+      severity: "error"
+    });
+  }
+
+  if (file.size > maxUploadFileSizeBytes) {
+    messages.push({
+      dataset,
+      message: "Upload is larger than 5 MB. Split the export by pay period or department before loading.",
+      severity: "error"
+    });
+  }
+
+  if (file.size === 0) {
+    messages.push({
+      dataset,
+      message: "Upload file is empty.",
+      severity: "error"
+    });
+  }
+
+  return messages;
 }
 
 function recordsFromCsv(text: string): CsvRecord[] {

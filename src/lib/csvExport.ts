@@ -13,7 +13,8 @@ function escapeCsvValue(value: CsvValue): string {
   }
 
   const stringValue = String(value);
-  const escapedValue = stringValue.replace(/"/g, '""');
+  const safeStringValue = /^[=+\-@\t\r]/.test(stringValue) ? `'${stringValue}` : stringValue;
+  const escapedValue = safeStringValue.replace(/"/g, '""');
 
   return /[",\n\r]/.test(escapedValue) ? `"${escapedValue}"` : escapedValue;
 }

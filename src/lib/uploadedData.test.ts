@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildActiveDashboardData, parseUploadedDataset } from "./uploadedData";
+import { buildActiveDashboardData, parseUploadedDataset, validateUploadFile } from "./uploadedData";
 
 describe("uploaded Workday-style CSV data", () => {
   it("parses payroll CSV rows with user-friendly column headers", () => {
@@ -56,5 +56,29 @@ describe("uploaded Workday-style CSV data", () => {
       payrollCost: 5832,
       payrollCompletionRate: 1
     });
+  });
+
+  it("validates upload file type and size before parsing", () => {
+    expect(
+      validateUploadFile("workers", {
+        name: "workers.xlsx",
+        size: 1024,
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      })
+    ).toEqual([
+      {
+        dataset: "workers",
+        message: "Upload must be a CSV file exported from Workday or a matching report source.",
+        severity: "error"
+      }
+    ]);
+
+    expect(
+      validateUploadFile("payrollResults", {
+        name: "payroll.csv",
+        size: 6 * 1024 * 1024,
+        type: "text/csv"
+      })[0].message
+    ).toBe("Upload is larger than 5 MB. Split the export by pay period or department before loading.");
   });
 });
