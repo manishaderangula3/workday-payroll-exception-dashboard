@@ -7,7 +7,7 @@
 | React dashboard app | Ready | Requires deployment decision and security review if hosted outside a local portfolio environment. |
 | Sample data mode | Ready | Use only synthetic data for public demos. |
 | CSV upload mode | Ready for controlled demos | Use sanitized exports only unless the app is hosted in an approved secure environment. |
-| Workday RaaS/API integration | Designed | Not implemented yet. Requires backend proxy and credential governance. |
+| Workday RaaS/API integration | Backend proxy implemented | Configure Workday report URLs and backend-only credentials before live tenant use. |
 | Workday tenant reports | Specified | Must be configured and validated in the target tenant. |
 | Workday security | Documented | Must be tested with actual Payroll, HRIS, Manager, Finance, Benefits, and Tax roles. |
 
@@ -22,6 +22,8 @@
 | CSV export is hardened | Complete | Formula-like values are neutralized before export. |
 | Runtime errors fail gracefully | Complete | React error boundary wraps the app. |
 | Real payroll credentials excluded | Complete | No Workday credentials, tokens, passwords, or API keys in frontend code. |
+| Backend proxy exists | Complete | Node proxy serves `/api` endpoints and built dashboard assets. |
+| External role security exists | Complete | Signed HTTP-only session cookie and backend RBAC filter data before browser delivery. |
 | Documentation linked | Complete | README links build plan, QA audit, and real-time data integration guide. |
 
 ## Workday Tenant Go-Live Checklist

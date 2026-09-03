@@ -90,9 +90,9 @@ W-2001,2026-09-15 Semi-Monthly,Federal W-4,Missing,800,0,No Withholding
 | Worker drill-down | Selected worker detail joins active worker, payroll, time, deduction, and tax rows. |
 | CSV export | Exports the current filtered view from the active dataset. |
 
-## Future Workday RaaS/API Integration
+## Workday RaaS/API Backend Proxy Integration
 
-For production use, connect to Workday through a backend service:
+For production use, connect to Workday through the backend proxy included in this repository:
 
 ```text
 React Dashboard
@@ -106,15 +106,18 @@ Workday Payroll, Time Tracking, Benefits, and Tax Reports
 
 Do not place Workday credentials, bearer tokens, Integration System User passwords, tenant secrets, or API keys in frontend code.
 
-Recommended production pattern:
+Implemented pattern:
 
 1. Create Workday custom reports and enable them as web services where appropriate.
 2. Configure an Integration System User with least-privilege report access.
-3. Store credentials only in a backend secret manager.
-4. Fetch Workday report output through a backend proxy.
-5. Normalize API/RaaS responses into the same `DashboardData` structure used by the upload feature.
-6. Add server-side logging, error handling, retry logic, and audit controls.
-7. Keep row-level security and real employee data controls inside Workday and the backend layer.
+3. Store credentials only in `.env` for local testing or an approved backend secret manager for hosted use.
+4. Start the backend with `npm run proxy` or `npm start`.
+5. Fetch Workday report output through `/api/workday/dashboard-data`.
+6. Apply signed-cookie authentication and backend RBAC before data reaches React.
+7. Normalize API/RaaS report output into the same dashboard data structure used by upload mode.
+8. Keep row-level security and real employee data controls inside Workday and the backend layer.
+
+See `docs/Backend_Proxy_Authentication.md` for endpoint, authentication, and role-security details.
 
 ## Security Notes
 

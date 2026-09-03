@@ -13,6 +13,7 @@ interface DataSourcePanelProps {
   onClearUploads: () => void;
   onFileUpload: (dataset: UploadDatasetKey, file: File) => void;
   onModeChange: (mode: DataSourceMode) => void;
+  proxyLoaded: boolean;
   summaries: Partial<Record<UploadDatasetKey, UploadedDatasetSummary>>;
 }
 
@@ -39,6 +40,7 @@ export function DataSourcePanel({
   onClearUploads,
   onFileUpload,
   onModeChange,
+  proxyLoaded,
   summaries
 }: DataSourcePanelProps) {
   const uploadedCount = Object.keys(summaries).length;
@@ -54,7 +56,11 @@ export function DataSourcePanel({
           <div>
             <p className="text-sm font-semibold text-slate-500">Data Source</p>
             <h2 className="text-lg font-semibold text-workday-ink">
-              {mode === "sample" ? "Sample Workday data" : "Uploaded Workday exports"}
+              {mode === "sample"
+                ? "Sample Workday data"
+                : mode === "uploaded"
+                  ? "Uploaded Workday exports"
+                  : "Backend proxy data"}
             </h2>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
               Upload CSV exports to replace sample workers, payroll, time, deduction, or tax records. KPIs, tabs,
@@ -84,6 +90,18 @@ export function DataSourcePanel({
             type="button"
           >
             Uploaded Data
+          </button>
+          <button
+            className={`h-9 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2 ${
+              mode === "proxy"
+                ? "bg-workday-blue text-white"
+                : "border border-slate-300 text-slate-700 hover:bg-slate-50"
+            }`}
+            disabled={!proxyLoaded}
+            onClick={() => onModeChange("proxy")}
+            type="button"
+          >
+            Backend Proxy
           </button>
           <button
             className="h-9 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -152,7 +170,9 @@ export function DataSourcePanel({
           <p className="mt-2 text-sm text-slate-600">
             {mode === "uploaded"
               ? `${uploadedCount} uploaded dataset${uploadedCount === 1 ? "" : "s"} active. Missing datasets fall back to sample data.`
-              : "Sample fixtures are active. Upload CSV files and switch to Uploaded Data for real export review."}
+              : mode === "proxy"
+                ? "Backend proxy data is active. Rows are scoped by the signed-in user's role before rendering."
+                : "Sample fixtures are active. Upload CSV files or load backend proxy data for real export review."}
           </p>
         </div>
 

@@ -44,6 +44,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Dynamic KPI threshold controls for live presentation scenarios and configurable alert logic
 - CSV upload mode for replacing sample data with Workday-style report exports and recalculating dashboard results
 - Production hardening for upload validation, CSV export safety, runtime error handling, and readiness tracking
+- Backend Workday RaaS/API proxy with signed session authentication and role-scoped data delivery
 
 ## Interactive Dashboard App
 
@@ -147,6 +148,15 @@ Production hardening adds:
 - Runtime error boundary with reset path
 - Production readiness checklist separating portfolio readiness from Workday tenant go-live tasks
 
+Backend proxy and authentication adds:
+
+- Node backend proxy for Workday RaaS/API report endpoints
+- Signed HTTP-only session cookie authentication
+- Demo users for local role-security testing
+- Backend role-based filtering by department, company, and pay group
+- Worker-detail masking for finance/read-only style roles
+- Frontend Backend Proxy data mode that loads scoped data through `/api`
+
 ## Project Structure
 
 ```text
@@ -178,6 +188,7 @@ workday-payroll-exception-dashboard/
 |   |-- Technical_Design.md
 |   |-- Assumptions.md
 |   |-- Real_Time_Data_Integration.md
+|   |-- Backend_Proxy_Authentication.md
 |   |-- Production_Readiness_Checklist.md
 |   `-- Lessons_Learned.md
 |-- report-design/
@@ -206,6 +217,10 @@ workday-payroll-exception-dashboard/
 |   |-- data/
 |   |-- styles/
 |   `-- types/
+|-- server/
+|   |-- demoData.js
+|   |-- rbac.js
+|   `-- workdayProxy.js
 `-- testing/
     |-- Test_Cases.md
     |-- UAT_Scenarios.md
@@ -313,8 +328,9 @@ Start here:
 9. See [samples/](samples/) for sample exports and portfolio screenshot placeholder location.
 10. Read [docs/Assumptions.md](docs/Assumptions.md) and [docs/Lessons_Learned.md](docs/Lessons_Learned.md) for final review, constraints, risks, and retrospective notes.
 11. Review [docs/Real_Time_Data_Integration.md](docs/Real_Time_Data_Integration.md) for CSV upload templates and future Workday RaaS/API design.
-12. Review [docs/Production_Readiness_Checklist.md](docs/Production_Readiness_Checklist.md) for coded-dashboard readiness and Workday tenant go-live requirements.
-13. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
+12. Review [docs/Backend_Proxy_Authentication.md](docs/Backend_Proxy_Authentication.md) for backend proxy, authentication, and RBAC setup.
+13. Review [docs/Production_Readiness_Checklist.md](docs/Production_Readiness_Checklist.md) for coded-dashboard readiness and Workday tenant go-live requirements.
+14. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
 
 Run the dashboard locally:
 
@@ -323,10 +339,29 @@ npm install
 npm run dev
 ```
 
+Run the backend proxy locally:
+
+```bash
+npm run proxy
+```
+
+Use proxy mode during development:
+
+1. Start `npm run proxy` in one terminal.
+2. Start `npm run dev` in another terminal.
+3. Sign in from the dashboard's Authentication and Role Security panel.
+4. Click `Load Proxy Data`.
+
 Build the dashboard:
 
 ```bash
 npm run build
+```
+
+Run the production-style local server after building:
+
+```bash
+npm start
 ```
 
 ## Production Readiness Notes

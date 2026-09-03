@@ -176,7 +176,26 @@ export interface DashboardData {
   payPeriods: string[];
 }
 
-export type DataSourceMode = "sample" | "uploaded";
+export type DataSourceMode = "sample" | "uploaded" | "proxy";
+
+export type SecurityRole =
+  | "payroll_admin"
+  | "payroll_manager"
+  | "hris_analyst"
+  | "finance_analyst"
+  | "department_manager"
+  | "read_only_auditor";
+
+export interface AuthenticatedUser {
+  username: string;
+  displayName: string;
+  role: SecurityRole;
+  allowedDepartments: string[];
+  allowedCompanies: string[];
+  allowedPayGroups: string[];
+  canViewWorkerDetail: boolean;
+  canExport: boolean;
+}
 
 export type UploadDatasetKey = "workers" | "payrollResults" | "timeEntries" | "deductionResults" | "taxResults";
 

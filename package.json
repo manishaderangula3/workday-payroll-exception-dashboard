@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "proxy": "node server/workdayProxy.js",
+    "start": "node server/workdayProxy.js",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run"
