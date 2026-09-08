@@ -8,9 +8,15 @@ import { applyRoleSecurity, publicUser } from "./rbac.js";
 loadDotEnv();
 
 const port = Number(process.env.PORT ?? 8787);
+const host = process.env.HOST ?? "127.0.0.1";
 const sessionCookieName = "wd_dash_session";
 const sessionSecret = process.env.SESSION_SECRET ?? "local-development-session-secret-change-me";
+const secureCookie = process.env.COOKIE_SECURE === "true";
 const distPath = resolve("dist");
+
+if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET is required when NODE_ENV=production.");
+}
 
 const demoUsers = [
   {
@@ -117,11 +123,11 @@ function createSessionCookie(user) {
   ).toString("base64url");
   const signature = sign(payload);
 
-  return `${sessionCookieName}=${payload}.${signature}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800`;
+  return `${sessionCookieName}=${payload}.${signature}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800${secureCookie ? "; Secure" : ""}`;
 }
 
 function clearSessionCookie() {
-  return `${sessionCookieName}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
+  return `${sessionCookieName}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secureCookie ? "; Secure" : ""}`;
 }
 
 function parseSession(request) {
@@ -453,6 +459,6 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(port, "127.0.0.1", () => {
-  console.log(`Workday dashboard backend proxy running at http://127.0.0.1:${port}`);
+server.listen(port, host, () => {
+  console.log(`Workday dashboard backend proxy running at http://${host}:${port}`);
 });

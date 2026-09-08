@@ -157,13 +157,22 @@ Backend proxy and authentication adds:
 - Worker-detail masking for finance/read-only style roles
 - Frontend Backend Proxy data mode that loads scoped data through `/api`
 
+Hosted deployment and visual QA adds:
+
+- Full-stack Node.js hosting decision for real Workday RaaS/API data use
+- Portable Dockerfile for Node-capable deployment platforms
+- Production cookie and host binding settings for secure hosted runtime
+- Playwright browser visual regression tests for desktop, mobile, and backend proxy role scoping
+
 ## Project Structure
 
 ```text
 workday-payroll-exception-dashboard/
 |-- README.md
 |-- LICENSE
+|-- Dockerfile
 |-- package.json
+|-- playwright.config.ts
 |-- index.html
 |-- vite.config.js
 |-- tailwind.config.js
@@ -189,8 +198,12 @@ workday-payroll-exception-dashboard/
 |   |-- Assumptions.md
 |   |-- Real_Time_Data_Integration.md
 |   |-- Backend_Proxy_Authentication.md
+|   |-- Hosting_Deployment_Decision.md
 |   |-- Production_Readiness_Checklist.md
 |   `-- Lessons_Learned.md
+|-- e2e/
+|   |-- dashboard.visual.spec.ts
+|   `-- dashboard.visual.spec.ts-snapshots/
 |-- report-design/
 |   |-- Business_Objects.md
 |   |-- Data_Sources.md
@@ -329,8 +342,9 @@ Start here:
 10. Read [docs/Assumptions.md](docs/Assumptions.md) and [docs/Lessons_Learned.md](docs/Lessons_Learned.md) for final review, constraints, risks, and retrospective notes.
 11. Review [docs/Real_Time_Data_Integration.md](docs/Real_Time_Data_Integration.md) for CSV upload templates and future Workday RaaS/API design.
 12. Review [docs/Backend_Proxy_Authentication.md](docs/Backend_Proxy_Authentication.md) for backend proxy, authentication, and RBAC setup.
-13. Review [docs/Production_Readiness_Checklist.md](docs/Production_Readiness_Checklist.md) for coded-dashboard readiness and Workday tenant go-live requirements.
-14. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
+13. Review [docs/Hosting_Deployment_Decision.md](docs/Hosting_Deployment_Decision.md) for the selected hosting pattern.
+14. Review [docs/Production_Readiness_Checklist.md](docs/Production_Readiness_Checklist.md) for coded-dashboard readiness and Workday tenant go-live requirements.
+15. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
 
 Run the dashboard locally:
 
@@ -362,6 +376,18 @@ Run the production-style local server after building:
 
 ```bash
 npm start
+```
+
+Run browser visual regression tests:
+
+```bash
+npm run test:visual
+```
+
+Refresh approved screenshot baselines after intentional visual changes:
+
+```bash
+npm run test:visual:update
 ```
 
 ## Production Readiness Notes

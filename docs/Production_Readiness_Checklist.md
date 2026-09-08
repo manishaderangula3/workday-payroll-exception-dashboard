@@ -4,7 +4,7 @@
 
 | Area | Portfolio Dashboard Status | Workday Production Status |
 | --- | --- | --- |
-| React dashboard app | Ready | Requires deployment decision and security review if hosted outside a local portfolio environment. |
+| React dashboard app | Ready | Host through the selected full-stack Node deployment path when backend proxy mode is enabled. |
 | Sample data mode | Ready | Use only synthetic data for public demos. |
 | CSV upload mode | Ready for controlled demos | Use sanitized exports only unless the app is hosted in an approved secure environment. |
 | Workday RaaS/API integration | Backend proxy implemented | Configure Workday report URLs and backend-only credentials before live tenant use. |
@@ -24,6 +24,8 @@
 | Real payroll credentials excluded | Complete | No Workday credentials, tokens, passwords, or API keys in frontend code. |
 | Backend proxy exists | Complete | Node proxy serves `/api` endpoints and built dashboard assets. |
 | External role security exists | Complete | Signed HTTP-only session cookie and backend RBAC filter data before browser delivery. |
+| Hosted deployment decision | Complete | Full-stack Node.js hosting selected; see `docs/Hosting_Deployment_Decision.md`. |
+| Browser visual regression tests | Complete | Playwright desktop, mobile, and proxy role-scope screenshots are configured. |
 | Documentation linked | Complete | README links build plan, QA audit, and real-time data integration guide. |
 
 ## Workday Tenant Go-Live Checklist
@@ -48,7 +50,8 @@
 - Store Workday credentials only in an approved backend secret store.
 - Never place Workday tenant credentials or bearer tokens in React frontend code.
 - Use HTTPS and approved hosting controls for any environment that handles real payroll exports.
+- Set `SESSION_SECRET`, `COOKIE_SECURE=true`, and production Workday endpoint credentials through the hosting platform's secret manager.
 
 ## Final Recommendation
 
-The coded dashboard is ready for portfolio presentation and controlled upload-based demos. A true Workday production implementation should proceed only after tenant configuration, role security, reconciliation, performance testing, and UAT sign-off are completed.
+The coded dashboard is ready for portfolio presentation, controlled upload-based demos, and production-style hosted validation. A true Workday production implementation should proceed only after tenant configuration, role security, reconciliation, performance testing, browser visual regression review, and UAT sign-off are completed.

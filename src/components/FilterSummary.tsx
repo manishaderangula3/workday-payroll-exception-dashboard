@@ -34,7 +34,10 @@ export function FilterSummary({ filters, isRefreshing, lastUpdated }: FilterSumm
           ))}
         </div>
 
-        <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
+        <div
+          className="inline-flex items-center gap-2 text-xs font-semibold uppercase text-slate-500"
+          data-testid="last-updated"
+        >
           <Clock className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} aria-hidden="true" />
           Last updated {lastUpdated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
         </div>

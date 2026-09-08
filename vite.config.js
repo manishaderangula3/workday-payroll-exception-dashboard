@@ -19,5 +19,8 @@ export default defineConfig({
     proxy: {
       "/api": "http://127.0.0.1:8787"
     }
+  },
+  test: {
+    exclude: ["e2e/**", "node_modules/**", "dist/**"]
   }
 });
