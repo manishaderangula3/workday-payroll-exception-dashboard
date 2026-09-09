@@ -10,6 +10,7 @@
 | Workday RaaS/API integration | Backend proxy implemented | Configure Workday report URLs and backend-only credentials before live tenant use. |
 | Workday tenant reports | Specified | Must be configured and validated in the target tenant. |
 | Workday security | Documented | Must be tested with actual Payroll, HRIS, Manager, Finance, Benefits, and Tax roles. |
+| Tenant go-live execution pack | Complete | Runbooks and sign-off templates are documented for live tenant execution. |
 
 ## Coded Dashboard Checklist
 
@@ -27,21 +28,26 @@
 | Hosted deployment decision | Complete | Full-stack Node.js hosting selected; see `docs/Hosting_Deployment_Decision.md`. |
 | Browser visual regression tests | Complete | Playwright desktop, mobile, and proxy role-scope screenshots are configured. |
 | Documentation linked | Complete | README links build plan, QA audit, and real-time data integration guide. |
+| Tenant build runbook | Complete | `docs/Workday_Tenant_Build_Runbook.md` |
+| Production security test plan | Complete | `testing/Security_Testing_Plan.md` |
+| Payroll/GL reconciliation plan | Complete | `testing/Payroll_GL_Reconciliation_Plan.md` |
+| Performance test plan | Complete | `testing/Performance_Testing_Plan.md` |
+| UAT sign-off packet | Complete | `testing/UAT_Signoff_Packet.md` |
 
 ## Workday Tenant Go-Live Checklist
 
-| Check | Owner | Required Before Production |
-| --- | --- | --- |
-| Validate report data sources | Workday Reporting Analyst | Confirm Payroll Results, Time Tracking, Worker, Benefit, and Tax objects return expected rows. |
-| Build calculated fields | Workday Report Builder | Build and unit test payroll status, overtime, missing time, deduction, and tax exception logic. |
-| Configure report prompts | Workday Report Builder | Confirm Pay Period, Company, Pay Group, Department, Status, and threshold prompts work across reports. |
-| Configure dashboard/composite report | Workday Report Builder | Confirm tab structure, shared prompts, badges, drill-downs, and exports. |
-| Validate role security | Workday Security Administrator | Test Payroll Admin, HR Partner, Department Manager, Finance Analyst, Benefits Administrator, and Tax Analyst access. |
-| Validate export security | Payroll/IT Security | Confirm exports contain only rows and fields allowed by the user's security context. |
-| Reconcile payroll totals | Payroll Manager and Finance Analyst | Tie payroll cost totals to payroll register and general ledger control totals. |
-| Performance test large populations | Workday Reporting Lead | Validate target load time with realistic worker and payroll result volume. |
-| Complete UAT sign-off | Payroll Product Owner | Confirm business acceptance and documented defect disposition. |
-| Approve production migration | Payroll, HRIS, IT Security | Confirm no open Critical defects and approved plan for High defects. |
+| Check | Owner | Execution Artifact | Required Before Production |
+| --- | --- | --- | --- |
+| Validate report data sources | Workday Reporting Analyst | `docs/Workday_Tenant_Build_Runbook.md` | Confirm Payroll Results, Time Tracking, Worker, Benefit, and Tax objects return expected rows. |
+| Build calculated fields | Workday Report Builder | `docs/Workday_Tenant_Build_Runbook.md` | Build and unit test payroll status, overtime, missing time, deduction, and tax exception logic. |
+| Configure report prompts | Workday Report Builder | `docs/Workday_Tenant_Build_Runbook.md` | Confirm Pay Period, Company, Pay Group, Department, Status, and threshold prompts work across reports. |
+| Configure dashboard/composite report | Workday Report Builder | `docs/Workday_Tenant_Build_Runbook.md` | Confirm tab structure, shared prompts, badges, drill-downs, and exports. |
+| Validate role security | Workday Security Administrator | `testing/Security_Testing_Plan.md` | Test Payroll Admin, HR Partner, Department Manager, Finance Analyst, Benefits Administrator, and Tax Analyst access. |
+| Validate export security | Payroll/IT Security | `testing/Security_Testing_Plan.md` | Confirm exports contain only rows and fields allowed by the user's security context. |
+| Reconcile payroll totals | Payroll Manager and Finance Analyst | `testing/Payroll_GL_Reconciliation_Plan.md` | Tie payroll cost totals to payroll register and general ledger control totals. |
+| Performance test large populations | Workday Reporting Lead | `testing/Performance_Testing_Plan.md` | Validate target load time with realistic worker and payroll result volume. |
+| Complete UAT sign-off | Payroll Product Owner | `testing/UAT_Signoff_Packet.md` | Confirm business acceptance and documented defect disposition. |
+| Approve production migration | Payroll, HRIS, IT Security | `testing/UAT_Signoff_Packet.md` | Confirm no open Critical defects and approved plan for High defects. |
 
 ## Production Data Rules
 
@@ -54,4 +60,4 @@
 
 ## Final Recommendation
 
-The coded dashboard is ready for portfolio presentation, controlled upload-based demos, and production-style hosted validation. A true Workday production implementation should proceed only after tenant configuration, role security, reconciliation, performance testing, browser visual regression review, and UAT sign-off are completed.
+The coded dashboard is ready for portfolio presentation, controlled upload-based demos, and production-style hosted validation. The live Workday tenant activities cannot be marked complete until executed by approved tenant users, but the runbooks, test plans, reconciliation plan, and sign-off packet are now ready to support that production process.

@@ -164,6 +164,14 @@ Hosted deployment and visual QA adds:
 - Production cookie and host binding settings for secure hosted runtime
 - Playwright browser visual regression tests for desktop, mobile, and backend proxy role scoping
 
+Live tenant go-live pack adds:
+
+- Workday tenant build runbook for calculated fields, reports, dashboard tabs, prompts, and migration
+- Production security testing plan for role, row, field, export, direct-link, and session validation
+- Payroll and GL reconciliation plan with tolerance rules and sign-off template
+- Performance testing plan for dashboard load, prompt changes, exports, and backend proxy calls
+- UAT sign-off packet for Payroll, HRIS, Finance, Benefits, Tax, Security, and Product Owner approval
+
 ## Project Structure
 
 ```text
@@ -199,6 +207,7 @@ workday-payroll-exception-dashboard/
 |   |-- Real_Time_Data_Integration.md
 |   |-- Backend_Proxy_Authentication.md
 |   |-- Hosting_Deployment_Decision.md
+|   |-- Workday_Tenant_Build_Runbook.md
 |   |-- Production_Readiness_Checklist.md
 |   `-- Lessons_Learned.md
 |-- e2e/
@@ -238,7 +247,11 @@ workday-payroll-exception-dashboard/
     |-- Test_Cases.md
     |-- UAT_Scenarios.md
     |-- Defect_Log.md
-    `-- Dashboard_QA_Security_Audit.md
+    |-- Dashboard_QA_Security_Audit.md
+    |-- Security_Testing_Plan.md
+    |-- Payroll_GL_Reconciliation_Plan.md
+    |-- Performance_Testing_Plan.md
+    `-- UAT_Signoff_Packet.md
 ```
 
 ## Reports Built
@@ -343,8 +356,13 @@ Start here:
 11. Review [docs/Real_Time_Data_Integration.md](docs/Real_Time_Data_Integration.md) for CSV upload templates and future Workday RaaS/API design.
 12. Review [docs/Backend_Proxy_Authentication.md](docs/Backend_Proxy_Authentication.md) for backend proxy, authentication, and RBAC setup.
 13. Review [docs/Hosting_Deployment_Decision.md](docs/Hosting_Deployment_Decision.md) for the selected hosting pattern.
-14. Review [docs/Production_Readiness_Checklist.md](docs/Production_Readiness_Checklist.md) for coded-dashboard readiness and Workday tenant go-live requirements.
-15. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
+14. Review [docs/Workday_Tenant_Build_Runbook.md](docs/Workday_Tenant_Build_Runbook.md) for real tenant build and migration steps.
+15. Review [testing/Security_Testing_Plan.md](testing/Security_Testing_Plan.md) for production role-security validation.
+16. Review [testing/Payroll_GL_Reconciliation_Plan.md](testing/Payroll_GL_Reconciliation_Plan.md) for payroll register and GL tie-out.
+17. Review [testing/Performance_Testing_Plan.md](testing/Performance_Testing_Plan.md) for production-scale timing tests.
+18. Review [testing/UAT_Signoff_Packet.md](testing/UAT_Signoff_Packet.md) for final business approval.
+19. Review [docs/Production_Readiness_Checklist.md](docs/Production_Readiness_Checklist.md) for coded-dashboard readiness and Workday tenant go-live requirements.
+20. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
 
 Run the dashboard locally:
 
