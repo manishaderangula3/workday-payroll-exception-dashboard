@@ -69,6 +69,14 @@ function employeeCell(name: string, employeeId: string) {
   );
 }
 
+function employeeColumn<TData extends { employeeName: string; employeeId: string }>(): ColumnDef<TData> {
+  return {
+    accessorKey: "employeeName",
+    header: "Employee",
+    cell: ({ row }) => employeeCell(row.original.employeeName, row.original.employeeId)
+  };
+}
+
 function exportReport(reportName: string, filters: DashboardFilters, rows: CsvRow[]) {
   downloadCsv(
     `${sanitizeFileName(reportName)}-${sanitizeFileName(filters.payPeriod)}.csv`,
@@ -91,11 +99,7 @@ const payrollCostColumns: ColumnDef<PayrollCostReportRow>[] = [
     accessorKey: "department",
     header: "Department"
   },
-  {
-    accessorKey: "employeeName",
-    header: "Employee",
-    cell: ({ row }) => employeeCell(row.original.employeeName, row.original.employeeId)
-  },
+  employeeColumn<PayrollCostReportRow>(),
   {
     accessorKey: "payGroup",
     header: "Pay Group"
@@ -151,11 +155,7 @@ const overtimeColumns: ColumnDef<OvertimeReportRow>[] = [
     header: "OT Hours",
     cell: ({ getValue }) => <span className="font-semibold text-workday-ink">{formatHours(getValue<number>())}</span>
   },
-  {
-    accessorKey: "employeeName",
-    header: "Employee",
-    cell: ({ row }) => employeeCell(row.original.employeeName, row.original.employeeId)
-  },
+  employeeColumn<OvertimeReportRow>(),
   {
     accessorKey: "department",
     header: "Department"
@@ -205,11 +205,7 @@ const missingTimeColumns: ColumnDef<MissingTimeReportRow>[] = [
     header: "Missing Days",
     cell: ({ getValue }) => <span className="font-semibold text-red-700">{getValue<number>()}</span>
   },
-  {
-    accessorKey: "employeeName",
-    header: "Employee",
-    cell: ({ row }) => employeeCell(row.original.employeeName, row.original.employeeId)
-  },
+  employeeColumn<MissingTimeReportRow>(),
   {
     accessorKey: "department",
     header: "Department"
@@ -259,11 +255,7 @@ const deductionColumns: ColumnDef<DeductionExceptionReportRow>[] = [
       return <span className={`font-semibold ${varianceTone(value)}`}>{formatCurrency(value)}</span>;
     }
   },
-  {
-    accessorKey: "employeeName",
-    header: "Employee",
-    cell: ({ row }) => employeeCell(row.original.employeeName, row.original.employeeId)
-  },
+  employeeColumn<DeductionExceptionReportRow>(),
   {
     accessorKey: "department",
     header: "Department"
@@ -308,11 +300,7 @@ const taxColumns: ColumnDef<TaxExceptionReportRow>[] = [
     header: "Exception",
     cell: ({ getValue }) => <StatusBadge label={getValue<string>()} tone="red" />
   },
-  {
-    accessorKey: "employeeName",
-    header: "Employee",
-    cell: ({ row }) => employeeCell(row.original.employeeName, row.original.employeeId)
-  },
+  employeeColumn<TaxExceptionReportRow>(),
   {
     accessorKey: "department",
     header: "Department"
@@ -503,20 +491,20 @@ export function ReportViews({ acknowledgedCount, activeTab, data, filters, onWor
 
   return (
     <ReportTable
-    columns={taxColumns}
-    data={rows}
-    description="Tax withholding and tax form exceptions grouped by issue type for compliance review."
-    initialPageSize={6}
-    onExport={() => exportReport("Tax Exception Report", filters, rows as unknown as CsvRow[])}
-    onRowSelect={onWorkerSelect}
-    rowLabel="tax exception rows"
-    summary={[
-      { label: "Exceptions", value: String(rows.length), tone: "bg-red-50" },
-      { label: "Tax Variance", value: formatCurrency(totalVariance) },
-      { label: "Review Status", value: "Before approval", tone: "bg-amber-50" },
-      { label: "Acknowledged", value: String(acknowledgedCount), tone: "bg-green-50" }
-    ]}
-    title="Tax Exception Report"
-  />
+      columns={taxColumns}
+      data={rows}
+      description="Tax withholding and tax form exceptions grouped by issue type for compliance review."
+      initialPageSize={6}
+      onExport={() => exportReport("Tax Exception Report", filters, rows as unknown as CsvRow[])}
+      onRowSelect={onWorkerSelect}
+      rowLabel="tax exception rows"
+      summary={[
+        { label: "Exceptions", value: String(rows.length), tone: "bg-red-50" },
+        { label: "Tax Variance", value: formatCurrency(totalVariance) },
+        { label: "Review Status", value: "Before approval", tone: "bg-amber-50" },
+        { label: "Acknowledged", value: String(acknowledgedCount), tone: "bg-green-50" }
+      ]}
+      title="Tax Exception Report"
+    />
   );
 }

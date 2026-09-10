@@ -27,7 +27,7 @@ export function AuthSecurityPanel({
   user
 }: AuthSecurityPanelProps) {
   const [username, setUsername] = useState("payroll.admin");
-  const [password, setPassword] = useState("PayrollDemo123!");
+  const [password, setPassword] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

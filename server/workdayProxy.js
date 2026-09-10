@@ -1,7 +1,8 @@
 import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
-import { createReadStream, existsSync, readFileSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
-import { extname, join, resolve } from "node:path";
+import { extname, isAbsolute, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { demoDashboardData } from "./demoData.js";
 import { applyRoleSecurity, publicUser } from "./rbac.js";
 
@@ -13,6 +14,7 @@ const sessionCookieName = "wd_dash_session";
 const sessionSecret = process.env.SESSION_SECRET ?? "local-development-session-secret-change-me";
 const secureCookie = process.env.COOKIE_SECURE === "true";
 const distPath = resolve("dist");
+const maxJsonBodyBytes = 64 * 1024;
 
 if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET is required when NODE_ENV=production.");
@@ -21,7 +23,7 @@ if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
 const demoUsers = [
   {
     username: "payroll.admin",
-    password: "PayrollDemo123!",
+    passwordHash: "pbkdf2$sha256$210000$demo-payroll-admin$xNhWzX-7pEQT0nYBXANy0i--IdTA2vSjv-3f2gBZn5Y",
     displayName: "Payroll Admin",
     role: "payroll_admin",
     allowedDepartments: [],
@@ -30,7 +32,7 @@ const demoUsers = [
   },
   {
     username: "finance.analyst",
-    password: "FinanceDemo123!",
+    passwordHash: "pbkdf2$sha256$210000$demo-finance-analyst$CjIlrDz2xReTVgTFyhu2b8uRraXYUQJAx2RD_J10Q7I",
     displayName: "Finance Analyst",
     role: "finance_analyst",
     allowedDepartments: ["Finance", "Operations", "Customer Support", "Human Resources"],
@@ -39,7 +41,7 @@ const demoUsers = [
   },
   {
     username: "operations.manager",
-    password: "ManagerDemo123!",
+    passwordHash: "pbkdf2$sha256$210000$demo-operations-manager$s7MQBmA5TFj321rXNxUKJf-SNjr9BzaIDvwLQKUEalc",
     displayName: "Operations Manager",
     role: "department_manager",
     allowedDepartments: ["Operations"],
@@ -88,6 +90,10 @@ function notFound(response) {
 
 function badRequest(response, error) {
   jsonResponse(response, 400, { error });
+}
+
+function payloadTooLarge(response) {
+  jsonResponse(response, 413, { error: "Request body too large" });
 }
 
 function unauthorized(response, error = "Authentication required") {
@@ -186,9 +192,9 @@ function getUsers() {
     return JSON.parse(process.env.AUTH_USERS_JSON);
   }
 
-  return demoUsers.map((user) => ({
+  return demoUsers.map(({ password, ...user }) => ({
     ...user,
-    passwordHash: passwordHash(user.password),
+    passwordHash: user.passwordHash ?? passwordHash(password),
     password: undefined
   }));
 }
@@ -205,8 +211,17 @@ function findAuthenticatedUser(request) {
 
 async function readJsonBody(request) {
   const chunks = [];
+  let size = 0;
 
   for await (const chunk of request) {
+    size += chunk.length;
+
+    if (size > maxJsonBodyBytes) {
+      const error = new Error("Request body too large");
+      error.statusCode = 413;
+      throw error;
+    }
+
     chunks.push(chunk);
   }
 
@@ -416,14 +431,37 @@ function contentType(filePath) {
   return "application/octet-stream";
 }
 
+function isPathInside(parentPath, childPath) {
+  const pathDifference = relative(parentPath, childPath);
+  return pathDifference === "" || (!pathDifference.startsWith("..") && !isAbsolute(pathDifference));
+}
+
+function resolveStaticFilePath(pathname) {
+  let decodedPathname;
+
+  try {
+    decodedPathname = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+
+  const requestPath = decodedPathname === "/" ? "index.html" : decodedPathname.replace(/^\/+/, "");
+  const filePath = resolve(distPath, requestPath);
+
+  if (!isPathInside(distPath, filePath) || !existsSync(filePath) || !statSync(filePath).isFile()) {
+    return null;
+  }
+
+  return filePath;
+}
+
 function serveStatic(response, url) {
-  const requestPath = url.pathname === "/" ? "/index.html" : url.pathname;
-  const filePath = join(distPath, requestPath);
+  const filePath = resolveStaticFilePath(url.pathname);
 
-  if (!filePath.startsWith(distPath) || !existsSync(filePath)) {
-    const fallbackPath = join(distPath, "index.html");
+  if (!filePath) {
+    const fallbackPath = resolveStaticFilePath("/");
 
-    if (!existsSync(fallbackPath)) {
+    if (!fallbackPath) {
       notFound(response);
       return;
     }
@@ -450,6 +488,11 @@ const server = createServer(async (request, response) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected server error";
 
+    if (error && typeof error === "object" && "statusCode" in error && error.statusCode === 413) {
+      payloadTooLarge(response);
+      return;
+    }
+
     if (message.includes("JSON")) {
       badRequest(response, "Invalid JSON payload");
       return;
@@ -459,6 +502,10 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(port, host, () => {
-  console.log(`Workday dashboard backend proxy running at http://${host}:${port}`);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  server.listen(port, host, () => {
+    console.log(`Workday dashboard backend proxy running at http://${host}:${port}`);
+  });
+}
+
+export { readJsonBody, resolveStaticFilePath, server };
