@@ -10,11 +10,11 @@ export const roleLenses: RoleLens[] = [
       "I built this view to help payroll teams identify blockers before approval and reduce manual spreadsheet review.",
     primaryTabs: [
       { tabId: "overview", label: "Overview" },
+      { tabId: "readiness", label: "Readiness" },
       { tabId: "missing-time", label: "Missing Time" },
-      { tabId: "deductions", label: "Deductions" }
     ],
-    metricsToWatch: ["Payroll Completion", "Workers with Exceptions", "Missing Time", "Deduction variance"],
-    workflow: ["Run shared prompts", "Review red exceptions", "Open worker drill-down", "Acknowledge or notify manager"],
+    metricsToWatch: ["Readiness Score", "Payroll Completion", "Workers with Exceptions", "Missing Time"],
+    workflow: ["Run shared prompts", "Check readiness decision", "Review red exceptions", "Acknowledge or notify manager"],
     presentationValue: "Shows daily payroll close readiness and exception ownership."
   },
   {
@@ -58,11 +58,11 @@ export const roleLenses: RoleLens[] = [
       "I designed the dashboard as an operating control for payroll close, with exception status, audit export, and drill-down review.",
     primaryTabs: [
       { tabId: "overview", label: "Overview" },
+      { tabId: "readiness", label: "Readiness" },
       { tabId: "payroll-costs", label: "Payroll Costs" },
-      { tabId: "tax-issues", label: "Tax Issues" }
     ],
-    metricsToWatch: ["Total Payroll Cost", "Payroll Status", "Tax variance", "Export metadata"],
-    workflow: ["Check totals", "Review status exceptions", "Export current view", "Document acknowledgement"],
+    metricsToWatch: ["Readiness Score", "Total Payroll Cost", "Payroll Status", "Tax variance"],
+    workflow: ["Check approval blockers", "Review status exceptions", "Export readiness", "Document acknowledgement"],
     presentationValue: "Demonstrates payroll systems controls and reconciliation readiness."
   },
   {
@@ -90,8 +90,8 @@ export const roleLenses: RoleLens[] = [
       "I can walk stakeholders from payroll pain point to solution design, build plan, UAT, adoption, and portfolio demo.",
     primaryTabs: [
       { tabId: "overview", label: "Executive View" },
+      { tabId: "readiness", label: "Readiness" },
       { tabId: "documentation", label: "Documentation" },
-      { tabId: "payroll-costs", label: "Payroll Costs" }
     ],
     metricsToWatch: ["Business value", "Exception trend", "Readiness status", "Documentation traceability"],
     workflow: ["Frame the problem", "Show the dashboard", "Open proof documents", "Explain deployment readiness"],
@@ -138,11 +138,11 @@ export const roleLenses: RoleLens[] = [
       "I designed this as a daily operations cockpit for prioritizing urgent payroll close issues.",
     primaryTabs: [
       { tabId: "overview", label: "Overview" },
+      { tabId: "readiness", label: "Readiness" },
       { tabId: "overtime", label: "Overtime" },
-      { tabId: "missing-time", label: "Missing Time" }
     ],
-    metricsToWatch: ["Red alerts", "Top exception workers", "Deadline", "Acknowledged issues"],
-    workflow: ["Start with top exceptions", "Sort by severity", "Notify owners", "Track acknowledgement"],
+    metricsToWatch: ["Readiness Score", "Red alerts", "Top exception workers", "Deadline"],
+    workflow: ["Start with readiness blockers", "Sort by severity", "Notify owners", "Track acknowledgement"],
     presentationValue: "Shows practical close-cycle triage and action tracking."
   }
 ];

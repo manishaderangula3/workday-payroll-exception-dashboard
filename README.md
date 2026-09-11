@@ -35,6 +35,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Missing time entry identification before payroll close
 - Deduction exception tracking for failed, over-deducted, under-deducted, and arrears cases
 - Tax withholding compliance monitoring for missing, failed, over-withheld, under-withheld, and jurisdiction issues
+- Payroll approval readiness center with blocker checklist, owner actions, and readiness export
 - Single composite dashboard with shared prompts and drill-down capability
 - KPI cards for payroll cost, workers with exceptions, missing time, overtime, and payroll completion
 - Matrix view for overtime trends across departments

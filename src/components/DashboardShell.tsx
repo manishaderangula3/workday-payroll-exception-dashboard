@@ -1,9 +1,11 @@
 import { dashboardTabs } from "../data/navigation";
 import { getExceptionBreakdown, getWorkers } from "../lib/calculations";
+import { getPayrollReadinessSummary } from "../lib/readiness";
 import type { DashboardData, DashboardFilters, DashboardThresholds } from "../types/dashboard";
 import { useState } from "react";
 import { EmptyState } from "./EmptyState";
 import { OverviewPreview } from "./OverviewPreview";
+import { ReadinessCenter } from "./ReadinessCenter";
 import { ReportViews } from "./ReportViews";
 import { WorkerDrillDown } from "./WorkerDrillDown";
 
@@ -29,6 +31,7 @@ export function DashboardShell({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [acknowledgedEmployeeIds, setAcknowledgedEmployeeIds] = useState<Set<string>>(new Set());
   const breakdown = getExceptionBreakdown(filters, data);
+  const readinessSummary = getPayrollReadinessSummary(filters, data, thresholds);
   const visibleWorkers = getWorkers(filters, data);
   const acknowledgedCount = visibleWorkers.filter((worker) => acknowledgedEmployeeIds.has(worker.employeeId)).length;
   const tabBadgeMap = new Map([
@@ -36,6 +39,7 @@ export function DashboardShell({
     ["missing-time", breakdown.find((item) => item.label === "Missing Time")?.count ?? 0],
     ["deductions", breakdown.find((item) => item.label === "Deductions")?.count ?? 0],
     ["tax-issues", breakdown.find((item) => item.label === "Tax Issues")?.count ?? 0],
+    ["readiness", readinessSummary.blockers.length],
     ["overview", breakdown.reduce((total, item) => total + item.count, 0)]
   ]);
   const tabs = dashboardTabs.map((tab) => ({ ...tab, badge: tabBadgeMap.get(tab.id) ?? tab.badge }));
@@ -91,6 +95,8 @@ export function DashboardShell({
       <div className="space-y-5">
         {activeTab === "overview" ? (
           <OverviewPreview data={data} filters={filters} onTabChange={onTabChange} thresholds={thresholds} />
+        ) : activeTab === "readiness" ? (
+          <ReadinessCenter data={data} filters={filters} thresholds={thresholds} />
         ) : currentBadge === 0 && activeTab !== "payroll-costs" && activeTab !== "documentation" ? (
           <EmptyState
             message={`No ${currentTab.label.toLowerCase()} exceptions match the current shared prompts.`}

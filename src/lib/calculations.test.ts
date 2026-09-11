@@ -7,6 +7,9 @@ import {
   getOverviewMetrics,
   getWorkers
 } from "./calculations";
+import { defaultThresholds } from "../data/thresholds";
+import { sampleDashboardData } from "../data";
+import { getPayrollReadinessSummary } from "./readiness";
 
 const currentFilters = {
   payPeriod: "2026-08-15 Semi-Monthly",
@@ -118,6 +121,18 @@ describe("dashboard sample data calculations", () => {
       employeeName: "Noah Kim",
       exceptionType: "No Withholding",
       variance: -464
+    });
+  });
+
+  it("summarizes payroll approval readiness from current blockers", () => {
+    const summary = getPayrollReadinessSummary(currentFilters, sampleDashboardData, defaultThresholds);
+
+    expect(summary.status).toBe("Blocked");
+    expect(summary.score).toBeLessThan(50);
+    expect(summary.blockers.map((item) => item.label)).toContain("Missing time cleared");
+    expect(summary.checklist.find((item) => item.label === "Payroll completion")).toMatchObject({
+      status: "critical",
+      value: "8 of 12 workers complete"
     });
   });
 });
