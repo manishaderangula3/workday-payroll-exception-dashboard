@@ -231,6 +231,19 @@ function toList(value: string): string[] {
     .filter(Boolean);
 }
 
+function isValidIsoDate(value: string): boolean {
+  if (!value) {
+    return true;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 function toPayrollStatus(value: string): PayrollStatus {
   const normalized = normalizeText(value);
 
@@ -418,6 +431,38 @@ function getRowValidationMessages(
   });
 }
 
+function getInvalidDateMessages(dataset: UploadDatasetKey, rows: DashboardData[UploadDatasetKey]): UploadValidationMessage[] {
+  const messages: UploadValidationMessage[] = [];
+
+  rows.forEach((row, index) => {
+    const rowNumber = index + 2;
+    const addDateMessage = (field: string, value: string) => {
+      if (!isValidIsoDate(value)) {
+        messages.push({
+          dataset,
+          message: `Invalid ${field}: use YYYY-MM-DD.`,
+          rowNumber,
+          severity: "error"
+        });
+      }
+    };
+
+    if (dataset === "payrollResults") {
+      addDateMessage("paymentDate", (row as PayrollResult).paymentDate);
+    }
+
+    if (dataset === "timeEntries") {
+      const entry = row as TimeEntry;
+      addDateMessage("weekEndingDate", entry.weekEndingDate);
+      entry.missingDates.forEach((date) => addDateMessage("missingDates", date));
+      entry.approvedLeaveDates.forEach((date) => addDateMessage("approvedLeaveDates", date));
+      addDateMessage("lastSubmissionDate", entry.lastSubmissionDate ?? "");
+    }
+  });
+
+  return messages;
+}
+
 function filterValidRows<T extends { employeeId: string; payPeriod?: string }>(rows: T[]): T[] {
   return rows.filter((row) => row.employeeId && (!("payPeriod" in row) || row.payPeriod));
 }
@@ -475,7 +520,11 @@ export function parseUploadedDataset(
             ? parseDeductionResults(records)
             : parseTaxResults(records);
 
-  const messages = getRowValidationMessages(dataset, parsedRows);
+  const dashboardRows = parsedRows as DashboardData[UploadDatasetKey];
+  const messages = [
+    ...getRowValidationMessages(dataset, parsedRows),
+    ...getInvalidDateMessages(dataset, dashboardRows)
+  ];
 
   return {
     rows: filterValidRows(parsedRows as Array<{ employeeId: string; payPeriod?: string }>) as DashboardData[UploadDatasetKey],

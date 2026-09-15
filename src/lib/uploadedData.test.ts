@@ -81,4 +81,22 @@ describe("uploaded Workday-style CSV data", () => {
       })[0].message
     ).toBe("Upload is larger than 5 MB. Split the export by pay period or department before loading.");
   });
+
+  it("returns validation errors for invalid uploaded date values", () => {
+    const result = parseUploadedDataset(
+      "timeEntries",
+      [
+        "Employee ID,Pay Period,Week Ending Date,Scheduled Hours,Actual Hours Worked,Missing Dates,Last Submission Date",
+        "W-2001,2026-09-15 Semi-Monthly,09/15/2026,40,45,2026-02-30; 2026-09-14,2026-13-01"
+      ].join("\n")
+    );
+
+    expect(result.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ message: "Invalid weekEndingDate: use YYYY-MM-DD.", rowNumber: 2 }),
+        expect.objectContaining({ message: "Invalid missingDates: use YYYY-MM-DD.", rowNumber: 2 }),
+        expect.objectContaining({ message: "Invalid lastSubmissionDate: use YYYY-MM-DD.", rowNumber: 2 })
+      ])
+    );
+  });
 });

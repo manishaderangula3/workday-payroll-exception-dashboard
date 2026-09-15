@@ -15,6 +15,14 @@ const sessionSecret = process.env.SESSION_SECRET ?? "local-development-session-s
 const secureCookie = process.env.COOKIE_SECURE === "true";
 const distPath = resolve("dist");
 const maxJsonBodyBytes = 64 * 1024;
+const configuredWorkdayFetchTimeoutMs = Number(process.env.WORKDAY_FETCH_TIMEOUT_MS ?? 15000);
+const workdayFetchTimeoutMs =
+  Number.isFinite(configuredWorkdayFetchTimeoutMs) && configuredWorkdayFetchTimeoutMs > 0
+    ? configuredWorkdayFetchTimeoutMs
+    : 15000;
+const maxFailedLoginAttempts = 5;
+const loginThrottleWindowMs = 15 * 60 * 1000;
+const failedLoginAttempts = new Map();
 
 if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET is required when NODE_ENV=production.");
@@ -79,6 +87,7 @@ function jsonResponse(response, statusCode, payload, headers = {}) {
   response.writeHead(statusCode, {
     "Cache-Control": "no-store",
     "Content-Type": "application/json; charset=utf-8",
+    "X-Content-Type-Options": "nosniff",
     ...headers
   });
   response.end(JSON.stringify(payload));
@@ -98,6 +107,10 @@ function payloadTooLarge(response) {
 
 function unauthorized(response, error = "Authentication required") {
   jsonResponse(response, 401, { error });
+}
+
+function tooManyRequests(response) {
+  jsonResponse(response, 429, { error: "Too many failed sign-in attempts. Try again later." });
 }
 
 function parseCookies(request) {
@@ -176,7 +189,13 @@ function passwordHash(password, salt = randomBytes(16).toString("base64url")) {
 function verifyPassword(password, user) {
   if (user.passwordHash) {
     const [, algorithm, iterations, salt, expectedHash] = user.passwordHash.split("$");
-    const actualHash = pbkdf2Sync(password, salt, Number(iterations), 32, algorithm).toString("base64url");
+    const iterationCount = Number(iterations);
+
+    if (algorithm !== "sha256" || !Number.isFinite(iterationCount) || iterationCount < 100000 || !salt || !expectedHash) {
+      return false;
+    }
+
+    const actualHash = pbkdf2Sync(password, salt, iterationCount, 32, algorithm).toString("base64url");
 
     return (
       actualHash.length === expectedHash.length &&
@@ -184,12 +203,34 @@ function verifyPassword(password, user) {
     );
   }
 
-  return user.password === password;
+  return process.env.NODE_ENV === "production" ? false : user.password === password;
 }
 
 function getUsers() {
   if (process.env.AUTH_USERS_JSON) {
-    return JSON.parse(process.env.AUTH_USERS_JSON);
+    const users = JSON.parse(process.env.AUTH_USERS_JSON);
+
+    if (!Array.isArray(users)) {
+      throw new Error("AUTH_USERS_JSON must be an array of users.");
+    }
+
+    return users.map(({ password, ...user }) => ({
+      ...user,
+      passwordHash:
+        user.passwordHash ??
+        (() => {
+          if (process.env.NODE_ENV === "production") {
+            throw new Error("AUTH_USERS_JSON must use passwordHash values in production.");
+          }
+
+          if (!password) {
+            throw new Error("AUTH_USERS_JSON users must provide passwordHash or password.");
+          }
+
+          return passwordHash(password);
+        })(),
+      password: undefined
+    }));
   }
 
   return demoUsers.map(({ password, ...user }) => ({
@@ -197,6 +238,45 @@ function getUsers() {
     passwordHash: user.passwordHash ?? passwordHash(password),
     password: undefined
   }));
+}
+
+function loginThrottleKey(request, username) {
+  const forwardedFor = request.headers["x-forwarded-for"];
+  const clientAddress = Array.isArray(forwardedFor)
+    ? forwardedFor[0]
+    : forwardedFor?.split(",")[0] || request.socket?.remoteAddress || "unknown";
+
+  return `${clientAddress}:${username}`;
+}
+
+function isLoginThrottled(key) {
+  const current = failedLoginAttempts.get(key);
+
+  if (!current) {
+    return false;
+  }
+
+  if (Date.now() - current.firstFailedAt > loginThrottleWindowMs) {
+    failedLoginAttempts.delete(key);
+    return false;
+  }
+
+  return current.count >= maxFailedLoginAttempts;
+}
+
+function recordFailedLogin(key) {
+  const current = failedLoginAttempts.get(key);
+
+  if (!current || Date.now() - current.firstFailedAt > loginThrottleWindowMs) {
+    failedLoginAttempts.set(key, { count: 1, firstFailedAt: Date.now() });
+    return;
+  }
+
+  failedLoginAttempts.set(key, { ...current, count: current.count + 1 });
+}
+
+function clearFailedLogin(key) {
+  failedLoginAttempts.delete(key);
 }
 
 function findAuthenticatedUser(request) {
@@ -263,7 +343,8 @@ async function fetchWorkdayDataset(url) {
     headers: {
       Accept: "application/json",
       ...authHeaders()
-    }
+    },
+    signal: AbortSignal.timeout(workdayFetchTimeoutMs)
   });
 
   if (!response.ok) {
@@ -350,13 +431,23 @@ async function handleApi(request, response, url) {
 
   if (request.method === "POST" && url.pathname === "/api/auth/login") {
     const body = await readJsonBody(request);
-    const user = getUsers().find((candidate) => candidate.username === body.username);
+    const username = String(body.username ?? "");
+    const throttleKey = loginThrottleKey(request, username);
+
+    if (isLoginThrottled(throttleKey)) {
+      tooManyRequests(response);
+      return;
+    }
+
+    const user = getUsers().find((candidate) => candidate.username === username);
 
     if (!user || !verifyPassword(String(body.password ?? ""), user)) {
+      recordFailedLogin(throttleKey);
       unauthorized(response, "Invalid username or password");
       return;
     }
 
+    clearFailedLogin(throttleKey);
     jsonResponse(
       response,
       200,
@@ -466,12 +557,18 @@ function serveStatic(response, url) {
       return;
     }
 
-    response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    response.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      "X-Content-Type-Options": "nosniff"
+    });
     createReadStream(fallbackPath).pipe(response);
     return;
   }
 
-  response.writeHead(200, { "Content-Type": contentType(filePath) });
+  response.writeHead(200, {
+    "Content-Type": contentType(filePath),
+    "X-Content-Type-Options": "nosniff"
+  });
   createReadStream(filePath).pipe(response);
 }
 
@@ -498,7 +595,8 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    jsonResponse(response, 500, { error: message });
+    console.error("Backend proxy error:", error);
+    jsonResponse(response, 500, { error: "Unexpected server error" });
   }
 });
 
@@ -508,4 +606,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   });
 }
 
-export { readJsonBody, resolveStaticFilePath, server };
+export { getUsers, readJsonBody, resolveStaticFilePath, server, verifyPassword };

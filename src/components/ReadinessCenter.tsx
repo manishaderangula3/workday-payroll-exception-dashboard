@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, ShieldAlert } from "lucide-react";
-import { downloadCsv, type CsvRow } from "../lib/csvExport";
+import { downloadCsv, sanitizeFileName, type CsvRow } from "../lib/csvExport";
 import { getOverviewMetrics } from "../lib/calculations";
 import { formatDateShort, formatPercent } from "../lib/formatters";
 import { getPayrollReadinessSummary } from "../lib/readiness";
@@ -52,7 +52,7 @@ export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterPr
       action: item.action
     }));
 
-    downloadCsv(`payroll-approval-readiness-${filters.payPeriod}.csv`, rows, {
+    downloadCsv(`payroll-approval-readiness-${sanitizeFileName(filters.payPeriod)}.csv`, rows, {
       report: "Payroll Approval Readiness Center",
       payPeriod: filters.payPeriod,
       company: filters.company,
