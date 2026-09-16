@@ -47,7 +47,7 @@ export function DataSourcePanel({
   const errorCount = messages.filter((message) => message.severity === "error").length;
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+    <section className="dashboard-panel p-4">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-blue-50 text-workday-blue">
@@ -72,7 +72,7 @@ export function DataSourcePanel({
         <div className="flex flex-wrap gap-2">
           <button
             className={`h-9 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2 ${
-              mode === "sample" ? "bg-workday-blue text-white" : "border border-slate-300 text-slate-700 hover:bg-slate-50"
+              mode === "sample" ? "bg-workday-blue text-white shadow-sm shadow-blue-900/20" : "border border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:text-workday-blue"
             }`}
             onClick={() => onModeChange("sample")}
             type="button"
@@ -82,8 +82,8 @@ export function DataSourcePanel({
           <button
             className={`h-9 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2 ${
               mode === "uploaded"
-                ? "bg-workday-blue text-white"
-                : "border border-slate-300 text-slate-700 hover:bg-slate-50"
+                ? "bg-workday-blue text-white shadow-sm shadow-blue-900/20"
+                : "border border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:text-workday-blue"
             }`}
             disabled={uploadedCount === 0}
             onClick={() => onModeChange("uploaded")}
@@ -94,8 +94,8 @@ export function DataSourcePanel({
           <button
             className={`h-9 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2 ${
               mode === "proxy"
-                ? "bg-workday-blue text-white"
-                : "border border-slate-300 text-slate-700 hover:bg-slate-50"
+                ? "bg-workday-blue text-white shadow-sm shadow-blue-900/20"
+                : "border border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:text-workday-blue"
             }`}
             disabled={!proxyLoaded}
             onClick={() => onModeChange("proxy")}
@@ -104,7 +104,7 @@ export function DataSourcePanel({
             Backend Proxy
           </button>
           <button
-            className="h-9 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-workday-blue focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={uploadedCount === 0}
             onClick={onClearUploads}
             type="button"
@@ -120,7 +120,7 @@ export function DataSourcePanel({
 
           return (
             <label
-              className="flex min-h-36 cursor-pointer flex-col justify-between rounded-md border border-slate-200 bg-slate-50 p-3 transition hover:border-workday-blue hover:bg-blue-50"
+              className="flex min-h-36 cursor-pointer flex-col justify-between rounded-md border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm transition hover:border-workday-blue hover:bg-blue-50 hover:shadow-md"
               key={dataset}
             >
               <span>
@@ -162,7 +162,7 @@ export function DataSourcePanel({
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[0.7fr_1.3fr]">
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+        <div className="dashboard-panel-muted p-3">
           <p className="flex items-center gap-2 text-sm font-semibold text-workday-ink">
             <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden="true" />
             Active Data Status
@@ -176,7 +176,7 @@ export function DataSourcePanel({
           </p>
         </div>
 
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+        <div className="dashboard-panel-muted p-3">
           <p className="flex items-center gap-2 text-sm font-semibold text-workday-ink">
             {errorCount > 0 ? (
               <XCircle className="h-4 w-4 text-red-600" aria-hidden="true" />

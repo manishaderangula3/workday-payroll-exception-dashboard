@@ -8,7 +8,7 @@ import {
   X
 } from "lucide-react";
 import { useState } from "react";
-import { downloadCsv } from "../lib/csvExport";
+import { downloadCsv, sanitizeFileName } from "../lib/csvExport";
 import { formatCurrency, formatDateShort, formatHours } from "../lib/formatters";
 import { getWorkerSnapshot } from "../lib/workerSnapshot";
 import type { DashboardData, DashboardFilters } from "../types/dashboard";
@@ -25,8 +25,8 @@ interface WorkerDrillDownProps {
 
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-slate-50 p-3">
-      <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
+    <div className="dashboard-panel-muted p-3">
+      <p className="mini-label">{label}</p>
       <p className="mt-1 text-sm font-semibold text-workday-ink">{value}</p>
     </div>
   );
@@ -55,7 +55,7 @@ export function WorkerDrillDown({
 
   function handleExportSnapshot() {
     downloadCsv(
-      `${employeeId}-worker-snapshot-${filters.payPeriod}.csv`,
+      `${sanitizeFileName(employeeId)}-worker-snapshot-${sanitizeFileName(filters.payPeriod)}.csv`,
       [
         {
           employeeId: worker.employeeId,
@@ -85,8 +85,8 @@ export function WorkerDrillDown({
   }
 
   return (
-    <aside className="rounded-lg border border-slate-200 bg-white shadow-panel">
-      <div className="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-start lg:justify-between">
+    <aside className="dashboard-panel overflow-hidden">
+      <div className="flex flex-col gap-4 border-b border-slate-200 bg-gradient-to-r from-white via-slate-50 to-blue-50/60 p-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-blue-50 text-workday-blue">
             <UserRound className="h-5 w-5" aria-hidden="true" />
@@ -105,7 +105,7 @@ export function WorkerDrillDown({
 
         <button
           aria-label="Close worker drill-down"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition hover:bg-slate-100"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition hover:border-workday-blue hover:bg-blue-50 hover:text-workday-blue"
           onClick={onClose}
           type="button"
         >
@@ -132,7 +132,7 @@ export function WorkerDrillDown({
           </div>
 
           <div className="grid gap-4 xl:grid-cols-3">
-            <div className="rounded-md border border-slate-200 p-4">
+            <div className="dashboard-panel-muted p-4">
               <h3 className="text-sm font-semibold text-workday-ink">Time Review</h3>
               <p className="mt-2 text-sm text-slate-600">
                 {missingDates.length > 0
@@ -140,7 +140,7 @@ export function WorkerDrillDown({
                   : "No missing time dates for current prompts."}
               </p>
             </div>
-            <div className="rounded-md border border-slate-200 p-4">
+            <div className="dashboard-panel-muted p-4">
               <h3 className="text-sm font-semibold text-workday-ink">Deduction Review</h3>
               <p className="mt-2 text-sm text-slate-600">
                 {deductionExceptions.length > 0
@@ -148,7 +148,7 @@ export function WorkerDrillDown({
                   : "No deduction exceptions."}
               </p>
             </div>
-            <div className="rounded-md border border-slate-200 p-4">
+            <div className="dashboard-panel-muted p-4">
               <h3 className="text-sm font-semibold text-workday-ink">Tax Review</h3>
               <p className="mt-2 text-sm text-slate-600">
                 {taxExceptions.length > 0
@@ -159,14 +159,14 @@ export function WorkerDrillDown({
           </div>
         </section>
 
-        <section className="rounded-md border border-slate-200 bg-slate-50 p-4">
+        <section className="dashboard-panel-muted p-4">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-workday-ink">
             <ClipboardList className="h-4 w-4 text-workday-blue" aria-hidden="true" />
             Action Workflow
           </h3>
           <div className="mt-4 grid gap-2">
             <a
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-workday-blue px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
+              className="primary-action"
               href={`mailto:${worker.managerEmail}?subject=Payroll exception review for ${encodeURIComponent(worker.employeeName)}&body=Please review payroll exceptions for ${encodeURIComponent(worker.employeeName)} in ${encodeURIComponent(filters.payPeriod)}.`}
               onClick={() => setLastAction(`Manager notification prepared for ${worker.manager}.`)}
             >
@@ -174,7 +174,7 @@ export function WorkerDrillDown({
               Notify Manager
             </a>
             <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              className="secondary-action"
               onClick={() => setLastAction("Worker time entry review opened in simulated Workday task.")}
               type="button"
             >
@@ -182,7 +182,7 @@ export function WorkerDrillDown({
               Open Time Entry
             </button>
             <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              className="secondary-action"
               onClick={() => {
                 onAcknowledge(employeeId);
                 setLastAction("Exception acknowledged for payroll close tracking.");
@@ -193,7 +193,7 @@ export function WorkerDrillDown({
               Acknowledge Issue
             </button>
             <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              className="secondary-action"
               onClick={handleExportSnapshot}
               type="button"
             >

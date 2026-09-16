@@ -103,9 +103,9 @@ export function ExecutiveHighlights({ highlights }: ExecutiveHighlightsProps) {
   return (
     <section className="grid gap-4 lg:grid-cols-4">
       {cards.map(({ accent, content, icon: Icon, title }) => (
-        <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-panel" key={title}>
+        <article className="dashboard-panel p-4" key={title}>
           <div className="mb-4 flex items-center gap-2">
-            <span className={`flex h-8 w-8 items-center justify-center rounded-md ${accent}`}>
+            <span className={`flex h-8 w-8 items-center justify-center rounded-md shadow-sm ${accent}`}>
               <Icon className="h-4 w-4" aria-hidden="true" />
             </span>
             <h2 className="text-sm font-semibold text-workday-ink">{title}</h2>

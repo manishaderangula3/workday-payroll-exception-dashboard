@@ -64,7 +64,7 @@ export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterPr
 
   return (
     <section className="space-y-5">
-      <div className={`rounded-lg border border-l-4 border-slate-200 p-5 shadow-panel ${decisionStyles[summary.status]}`}>
+      <div className={`rounded-lg border border-l-4 border-white/80 p-5 shadow-panel ring-1 ring-slate-900/5 ${decisionStyles[summary.status]}`}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-white/80">
@@ -87,7 +87,7 @@ export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterPr
             </div>
           </div>
           <button
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2"
+            className="secondary-action bg-white/90"
             onClick={handleExport}
             type="button"
           >
@@ -98,24 +98,24 @@ export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterPr
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+        <article className="dashboard-panel p-4">
           <p className="text-sm font-semibold text-slate-500">Readiness Score</p>
           <p className="mt-2 text-3xl font-semibold text-workday-ink">{summary.score}</p>
           <p className="mt-1 text-sm text-slate-600">Out of 100</p>
         </article>
-        <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+        <article className="dashboard-panel p-4">
           <p className="text-sm font-semibold text-slate-500">Completion</p>
           <p className="mt-2 text-3xl font-semibold text-workday-ink">{formatPercent(metrics.payrollCompletionRate)}</p>
           <p className="mt-1 text-sm text-slate-600">
             {metrics.workersProcessed} of {metrics.workersExpected} workers
           </p>
         </article>
-        <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+        <article className="dashboard-panel p-4">
           <p className="text-sm font-semibold text-slate-500">Approval Deadline</p>
           <p className="mt-2 text-3xl font-semibold text-workday-ink">{formatDateShort(metrics.approvalDeadline)}</p>
           <p className="mt-1 text-sm text-slate-600">{metrics.daysToDeadline} days remaining</p>
         </article>
-        <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+        <article className="dashboard-panel p-4">
           <p className="text-sm font-semibold text-slate-500">Open Blockers</p>
           <p className="mt-2 text-3xl font-semibold text-workday-ink">{summary.blockers.length}</p>
           <p className="mt-1 text-sm text-slate-600">
@@ -124,14 +124,14 @@ export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterPr
         </article>
       </div>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <section className="dashboard-panel p-5">
         <div className="flex items-center gap-2">
           <ClipboardCheck className="h-5 w-5 text-workday-blue" aria-hidden="true" />
           <h2 className="text-lg font-semibold text-workday-ink">Approval Checklist</h2>
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {summary.checklist.map((item) => (
-            <article className="rounded-md border border-slate-200 bg-slate-50 p-4" key={item.label}>
+            <article className="dashboard-panel-muted p-4" key={item.label}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-semibold text-workday-ink">{item.label}</h3>
@@ -148,13 +148,13 @@ export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterPr
         </div>
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <section className="dashboard-panel p-5">
         <h2 className="text-lg font-semibold text-workday-ink">Blocker Queue</h2>
         {summary.blockers.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+                <tr className="border-b border-slate-200 bg-slate-100/80 text-left text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-3 py-2">Check</th>
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">Owner</th>
@@ -163,7 +163,7 @@ export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterPr
               </thead>
               <tbody>
                 {summary.blockers.map((item) => (
-                  <tr className="border-b border-slate-100" key={item.label}>
+                  <tr className="border-b border-slate-100 transition hover:bg-blue-50/60" key={item.label}>
                     <td className="px-3 py-3 font-semibold text-workday-ink">{item.label}</td>
                     <td className="px-3 py-3">
                       <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${statusStyles[item.status]}`}>

@@ -61,7 +61,7 @@ export function DashboardShell({
     <section className={`space-y-5 ${isRefreshing ? "opacity-70 transition-opacity" : ""}`}>
       <nav
         aria-label="Dashboard reports"
-        className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-panel"
+        className="dashboard-panel flex gap-2 overflow-x-auto p-2"
       >
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
@@ -70,8 +70,8 @@ export function DashboardShell({
             <button
               className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2 ${
                 isActive
-                  ? "bg-workday-blue text-white"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-workday-ink"
+                  ? "bg-workday-blue text-white shadow-sm shadow-blue-900/20"
+                  : "text-slate-600 hover:bg-blue-50 hover:text-workday-blue"
               }`}
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
@@ -81,7 +81,7 @@ export function DashboardShell({
               {typeof tab.badge === "number" ? (
                 <span
                   className={`rounded px-1.5 py-0.5 text-xs ${
-                    isActive ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+                    isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
                   }`}
                 >
                   {tab.badge}

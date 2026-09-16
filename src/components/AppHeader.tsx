@@ -1,4 +1,4 @@
-import { RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { BarChart3, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import type { DashboardFilters, FilterOptions } from "../types/dashboard";
 
 interface AppHeaderProps {
@@ -19,27 +19,32 @@ export function AppHeader({
   roleTitle
 }: AppHeaderProps) {
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-workday-blue">
-              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              Workday Payroll Portfolio Dashboard
+    <header className="border-b border-white/70 bg-white/90 shadow-sm backdrop-blur">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-4">
+            <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-900/20 sm:flex">
+              <BarChart3 className="h-7 w-7" aria-hidden="true" />
             </div>
-            <h1 className="mt-1 text-2xl font-semibold text-workday-ink">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-workday-blue">
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                Workday Payroll Portfolio Dashboard
+              </div>
+              <h1 className="mt-1 text-2xl font-semibold text-workday-ink">
               Payroll Exception & Reporting Dashboard
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Shared payroll readiness view for {roleTitle}
-            </p>
+              </h1>
+              <p className="mt-1 text-sm text-slate-600">
+                Shared payroll readiness view for {roleTitle}
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <label className="sr-only" htmlFor="global-search">
               Search workers or reports
             </label>
-            <div className="flex h-10 min-w-60 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-slate-500">
+            <div className="flex h-10 min-w-60 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-slate-500 shadow-sm transition focus-within:border-workday-blue focus-within:ring-2 focus-within:ring-workday-blue/20">
               <Search className="h-4 w-4" aria-hidden="true" />
               <input
                 id="global-search"
@@ -51,7 +56,7 @@ export function AppHeader({
               />
             </div>
             <button
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-workday-blue px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2 disabled:cursor-wait disabled:bg-blue-400"
+              className="primary-action"
               disabled={isRefreshing}
               onClick={onRefresh}
               type="button"
@@ -62,11 +67,11 @@ export function AppHeader({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="dashboard-panel grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             Pay Period
             <select
-              className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue"
+              className="field-control"
               value={filters.payPeriod}
               onChange={(event) => onFilterChange({ payPeriod: event.target.value })}
             >
@@ -79,7 +84,7 @@ export function AppHeader({
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             Company
             <select
-              className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue"
+              className="field-control"
               value={filters.company}
               onChange={(event) => onFilterChange({ company: event.target.value })}
             >
@@ -92,7 +97,7 @@ export function AppHeader({
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             Pay Group
             <select
-              className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue"
+              className="field-control"
               value={filters.payGroup}
               onChange={(event) => onFilterChange({ payGroup: event.target.value })}
             >
@@ -105,7 +110,7 @@ export function AppHeader({
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             Department
             <select
-              className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue"
+              className="field-control"
               value={filters.department}
               onChange={(event) => onFilterChange({ department: event.target.value })}
             >

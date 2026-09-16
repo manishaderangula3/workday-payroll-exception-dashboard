@@ -17,7 +17,7 @@ export function FilterSummary({ filters, isRefreshing, lastUpdated }: FilterSumm
   ];
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-panel">
+    <section className="dashboard-panel px-4 py-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-workday-ink">
@@ -26,7 +26,7 @@ export function FilterSummary({ filters, isRefreshing, lastUpdated }: FilterSumm
           </span>
           {filterChips.map((chip) => (
             <span
-              className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
+              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm"
               key={chip}
             >
               {chip}

@@ -231,7 +231,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen">
       <AppHeader
         filterOptions={filterOptions}
         filters={filters}
@@ -241,30 +241,7 @@ export function App() {
         roleTitle={activeRoleTitle}
       />
 
-      <main className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-        <RoleLensPanel activeRole={activeRole} onRoleChange={setActiveRole} onTabChange={setActiveTab} />
-        <AuthSecurityPanel
-          isLoading={isAuthLoading}
-          message={authMessage}
-          onLoadProxyData={handleLoadProxyData}
-          onLogin={handleBackendLogin}
-          onLogout={handleBackendLogout}
-          user={authUser}
-        />
-        <DataSourcePanel
-          messages={uploadMessages}
-          mode={dataSourceMode}
-          onClearUploads={handleClearUploads}
-          onFileUpload={handleFileUpload}
-          onModeChange={setDataSourceMode}
-          proxyLoaded={Object.keys(proxyDatasets).length > 0}
-          summaries={uploadSummaries}
-        />
-        <ThresholdControls
-          onReset={() => setThresholds(defaultThresholds)}
-          onThresholdChange={handleThresholdChange}
-          thresholds={thresholds}
-        />
+      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <FilterSummary filters={filters} isRefreshing={isRefreshing} lastUpdated={lastUpdated} />
         <DashboardShell
           activeTab={activeTab}
@@ -275,6 +252,44 @@ export function App() {
           onTabChange={setActiveTab}
           thresholds={thresholds}
         />
+
+        <section className="space-y-5 pt-2">
+          <div className="flex flex-col gap-1 border-t border-slate-200 pt-5">
+            <p className="mini-label">Configuration & Data Controls</p>
+            <h2 className="text-xl font-semibold text-workday-ink">Presentation setup</h2>
+            <p className="max-w-3xl text-sm leading-6 text-slate-600">
+              Role framing, security, source data, and threshold controls sit below the reporting view so the dashboard
+              stays ready for presentation first.
+            </p>
+          </div>
+
+          <div className="grid gap-5 xl:grid-cols-2">
+            <RoleLensPanel activeRole={activeRole} onRoleChange={setActiveRole} onTabChange={setActiveTab} />
+            <AuthSecurityPanel
+              isLoading={isAuthLoading}
+              message={authMessage}
+              onLoadProxyData={handleLoadProxyData}
+              onLogin={handleBackendLogin}
+              onLogout={handleBackendLogout}
+              user={authUser}
+            />
+          </div>
+
+          <DataSourcePanel
+            messages={uploadMessages}
+            mode={dataSourceMode}
+            onClearUploads={handleClearUploads}
+            onFileUpload={handleFileUpload}
+            onModeChange={setDataSourceMode}
+            proxyLoaded={Object.keys(proxyDatasets).length > 0}
+            summaries={uploadSummaries}
+          />
+          <ThresholdControls
+            onReset={() => setThresholds(defaultThresholds)}
+            onThresholdChange={handleThresholdChange}
+            thresholds={thresholds}
+          />
+        </section>
       </main>
     </div>
   );

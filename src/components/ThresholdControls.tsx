@@ -91,7 +91,7 @@ function getDisplayValue(thresholds: DashboardThresholds, control: NumberControl
 
 export function ThresholdControls({ onReset, onThresholdChange, thresholds }: ThresholdControlsProps) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+    <section className="dashboard-panel p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
@@ -108,7 +108,7 @@ export function ThresholdControls({ onReset, onThresholdChange, thresholds }: Th
         </div>
 
         <button
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2"
+          className="secondary-action"
           onClick={onReset}
           type="button"
         >
@@ -119,11 +119,11 @@ export function ThresholdControls({ onReset, onThresholdChange, thresholds }: Th
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {controls.map((control) => (
-          <label className="rounded-md border border-slate-200 bg-slate-50 p-3" key={control.field}>
-            <span className="block text-xs font-semibold uppercase text-slate-500">{control.label}</span>
+          <label className="dashboard-panel-muted p-3" key={control.field}>
+            <span className="mini-label block">{control.label}</span>
             <span className="mt-2 flex items-center gap-2">
               <input
-                className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm font-semibold text-workday-ink focus:border-workday-blue focus:outline-none focus:ring-1 focus:ring-workday-blue"
+                className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm font-semibold text-workday-ink shadow-sm transition focus:border-workday-blue focus:outline-none focus:ring-2 focus:ring-workday-blue/20"
                 max={control.max}
                 min={control.min}
                 onChange={(event) => {

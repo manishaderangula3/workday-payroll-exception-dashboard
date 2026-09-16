@@ -34,8 +34,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
 
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-        <section className="w-full max-w-xl rounded-lg border border-red-100 bg-white p-6 shadow-panel">
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <section className="dashboard-panel w-full max-w-xl border-red-100 p-6">
           <div className="flex gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-red-50 text-red-700">
               <AlertTriangle className="h-5 w-5" aria-hidden="true" />
@@ -54,7 +54,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           </div>
 
           <button
-            className="mt-5 inline-flex h-10 items-center gap-2 rounded-md bg-workday-blue px-4 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2"
+            className="primary-action mt-5"
             onClick={this.handleReset}
             type="button"
           >

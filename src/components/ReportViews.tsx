@@ -345,7 +345,7 @@ function renderDocumentationView() {
   ];
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-panel">
+    <section className="dashboard-panel p-6">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-blue-50 text-workday-blue">
           <BookOpen className="h-5 w-5" aria-hidden="true" />
@@ -360,7 +360,7 @@ function renderDocumentationView() {
       <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {links.map(([label, path]) => (
           <a
-            className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-workday-ink transition hover:border-workday-blue hover:bg-blue-50"
+            className="flex items-center justify-between rounded-md border border-slate-200 bg-gradient-to-br from-white to-slate-50 px-4 py-3 text-sm font-semibold text-workday-ink shadow-sm transition hover:border-workday-blue hover:bg-blue-50"
             href={`/${path}`}
             key={path}
           >

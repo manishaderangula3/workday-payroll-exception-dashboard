@@ -27,18 +27,18 @@ interface TrendVisualizationsProps {
 
 function getMatrixCellClass(value: number): string {
   if (value > 20) {
-    return "bg-red-50 text-red-700";
+    return "bg-red-100 text-red-800 ring-1 ring-red-200";
   }
 
   if (value > 8) {
-    return "bg-amber-50 text-amber-700";
+    return "bg-amber-100 text-amber-800 ring-1 ring-amber-200";
   }
 
   if (value > 0) {
-    return "bg-blue-50 text-blue-700";
+    return "bg-blue-100 text-blue-800 ring-1 ring-blue-200";
   }
 
-  return "bg-slate-50 text-slate-500";
+  return "bg-slate-100 text-slate-500 ring-1 ring-slate-200";
 }
 
 export function TrendVisualizations({ data, filters, onTabChange }: TrendVisualizationsProps) {
@@ -59,7 +59,7 @@ export function TrendVisualizations({ data, filters, onTabChange }: TrendVisuali
   return (
     <section className="space-y-5">
       <div className="grid gap-5 xl:grid-cols-2">
-        <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <article className="dashboard-panel p-5">
           <div className="flex flex-col gap-1">
             <h2 className="text-lg font-semibold text-workday-ink">Payroll Cost Trend</h2>
             <p className="text-sm text-slate-600">Six-period payroll cost and completion trend.</p>
@@ -83,6 +83,11 @@ export function TrendVisualizations({ data, filters, onTabChange }: TrendVisuali
                   width={64}
                 />
                 <Tooltip
+                  contentStyle={{
+                    border: "1px solid #E2E8F0",
+                    borderRadius: 8,
+                    boxShadow: "0 12px 30px rgba(15, 23, 42, 0.12)"
+                  }}
                   formatter={(value, name) => {
                     if (name === "payrollCost") {
                       return [formatCurrency(Number(value)), "Payroll Cost"];
@@ -107,14 +112,14 @@ export function TrendVisualizations({ data, filters, onTabChange }: TrendVisuali
           </div>
         </article>
 
-        <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <article className="dashboard-panel p-5">
           <div className="flex flex-col gap-1">
             <h2 className="text-lg font-semibold text-workday-ink">Exception Breakdown</h2>
             <p className="text-sm text-slate-600">Click a segment or legend item to open the detail tab.</p>
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="h-64">
+            <div className="relative h-64">
               <ResponsiveContainer height="100%" width="100%">
                 <PieChart>
                   <Pie
@@ -132,19 +137,32 @@ export function TrendVisualizations({ data, filters, onTabChange }: TrendVisuali
                       <Cell cursor="pointer" fill={entry.chartColor} key={entry.label} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value, name) => [`${value} workers`, name]} />
+                  <Tooltip
+                    contentStyle={{
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 8,
+                      boxShadow: "0 12px 30px rgba(15, 23, 42, 0.12)"
+                    }}
+                    formatter={(value, name) => [`${value} workers`, name]}
+                  />
                 </PieChart>
               </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-3xl font-semibold text-workday-ink">{totalExceptions}</p>
+                  <p className="mini-label">Open</p>
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col justify-center gap-3">
-              <div className="rounded-md bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase text-slate-500">Total Exceptions</p>
+              <div className="dashboard-panel-muted p-4">
+                <p className="mini-label">Total Exceptions</p>
                 <p className="mt-1 text-3xl font-semibold text-workday-ink">{totalExceptions}</p>
               </div>
               {exceptionBreakdown.map((item) => (
                 <button
-                  className="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2 text-left transition hover:border-workday-blue hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2"
+                  className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition hover:border-workday-blue hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2"
                   key={item.label}
                   onClick={() => onTabChange(item.tabId)}
                   type="button"
@@ -161,7 +179,7 @@ export function TrendVisualizations({ data, filters, onTabChange }: TrendVisuali
         </article>
       </div>
 
-      <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <article className="dashboard-panel p-5">
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-semibold text-workday-ink">Overtime Trend Matrix</h2>
           <p className="text-sm text-slate-600">Department overtime hours for the last four week-ending dates.</p>

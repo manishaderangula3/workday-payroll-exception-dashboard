@@ -67,8 +67,8 @@ export function ReportTable<TData extends { employeeId?: string }>({
   }
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white shadow-panel">
-      <div className="border-b border-slate-200 p-5">
+    <section className="dashboard-panel overflow-hidden">
+      <div className="border-b border-slate-200 bg-gradient-to-r from-white via-slate-50 to-blue-50/60 p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-workday-ink">{title}</h2>
@@ -82,15 +82,15 @@ export function ReportTable<TData extends { employeeId?: string }>({
           <div className="flex flex-col gap-3 xl:items-end">
             <div className="flex flex-wrap gap-2 xl:justify-end">
               {summary.map((item) => (
-                <div className={`rounded-md border border-slate-200 px-3 py-2 ${item.tone ?? "bg-slate-50"}`} key={item.label}>
-                  <p className="text-xs font-semibold uppercase text-slate-500">{item.label}</p>
+                <div className={`rounded-md border border-white/80 px-3 py-2 shadow-sm ring-1 ring-slate-900/5 ${item.tone ?? "bg-white"}`} key={item.label}>
+                  <p className="mini-label">{item.label}</p>
                   <p className="mt-1 text-sm font-semibold text-workday-ink">{item.value}</p>
                 </div>
               ))}
             </div>
             {onExport ? (
               <button
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-workday-blue focus:ring-offset-2"
+                className="secondary-action"
                 onClick={onExport}
                 type="button"
               >
@@ -104,7 +104,7 @@ export function ReportTable<TData extends { employeeId?: string }>({
 
       <div className="overflow-x-auto">
         <table className="min-w-full border-separate border-spacing-0 text-sm">
-          <thead className="bg-slate-50">
+          <thead className="bg-slate-100/80">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
@@ -113,7 +113,7 @@ export function ReportTable<TData extends { employeeId?: string }>({
 
                   return (
                     <th
-                      className="border-b border-slate-200 px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500"
+                      className="border-b border-slate-200 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
                       key={header.id}
                     >
                       {header.isPlaceholder ? null : (
@@ -136,7 +136,7 @@ export function ReportTable<TData extends { employeeId?: string }>({
           <tbody>
             {table.getRowModel().rows.map((row) => (
               <tr
-                className={`hover:bg-blue-50/40 ${onRowSelect && row.original.employeeId ? "cursor-pointer" : ""}`}
+                className={`transition hover:bg-blue-50/70 ${onRowSelect && row.original.employeeId ? "cursor-pointer" : ""}`}
                 key={row.id}
                 onClick={() => {
                   if (onRowSelect && row.original.employeeId) {
@@ -161,7 +161,7 @@ export function ReportTable<TData extends { employeeId?: string }>({
         </p>
         <div className="flex items-center gap-2">
           <button
-            className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-workday-blue hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!table.getCanPreviousPage()}
             onClick={() => table.previousPage()}
             type="button"
@@ -173,7 +173,7 @@ export function ReportTable<TData extends { employeeId?: string }>({
             Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
           </span>
           <button
-            className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-workday-blue hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!table.getCanNextPage()}
             onClick={() => table.nextPage()}
             type="button"
