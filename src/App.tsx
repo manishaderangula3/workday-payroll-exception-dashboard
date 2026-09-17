@@ -3,6 +3,7 @@ import { AppHeader } from "./components/AppHeader";
 import { AuthSecurityPanel } from "./components/AuthSecurityPanel";
 import { DataSourcePanel } from "./components/DataSourcePanel";
 import { DashboardShell } from "./components/DashboardShell";
+import { DashboardStatusStrip } from "./components/DashboardStatusStrip";
 import { FilterSummary } from "./components/FilterSummary";
 import { getFilterOptions } from "./lib/filterOptions";
 import { RoleLensPanel } from "./components/RoleLensPanel";
@@ -242,6 +243,14 @@ export function App() {
       />
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <DashboardStatusStrip
+          activeRoleTitle={activeRoleTitle}
+          data={activeData}
+          dataSourceMode={dataSourceMode}
+          filters={filters}
+          thresholds={thresholds}
+          uploadedDatasetCount={Object.keys(uploadedDatasets).length}
+        />
         <FilterSummary filters={filters} isRefreshing={isRefreshing} lastUpdated={lastUpdated} />
         <DashboardShell
           activeTab={activeTab}
@@ -256,10 +265,9 @@ export function App() {
         <section className="space-y-5 pt-2">
           <div className="flex flex-col gap-1 border-t border-slate-200 pt-5">
             <p className="mini-label">Configuration & Data Controls</p>
-            <h2 className="text-xl font-semibold text-workday-ink">Presentation setup</h2>
+            <h2 className="text-xl font-semibold text-workday-ink">Dashboard controls</h2>
             <p className="max-w-3xl text-sm leading-6 text-slate-600">
-              Role framing, security, source data, and threshold controls sit below the reporting view so the dashboard
-              stays ready for presentation first.
+              Role framing, security, source data, and threshold controls stay available below the reporting view.
             </p>
           </div>
 
