@@ -3,6 +3,7 @@ import { getOverviewMetrics } from "../lib/calculations";
 import {
   formatCurrency,
   formatDateShort,
+  formatDeadlineCountdown,
   formatHours
 } from "../lib/formatters";
 import { buildOverviewKpiCards } from "../lib/kpiCards";
@@ -114,7 +115,7 @@ export function OverviewPreview({ data, filters, onTabChange, thresholds }: Over
               <p className="mt-1 text-xl font-semibold text-workday-ink">
                 {formatDateShort(metrics.approvalDeadline)}
               </p>
-              <p className="mt-1 text-sm text-slate-600">{metrics.daysToDeadline} days remaining</p>
+              <p className="mt-1 text-sm text-slate-600">{formatDeadlineCountdown(metrics.daysToDeadline)}</p>
             </div>
           </div>
         </section>

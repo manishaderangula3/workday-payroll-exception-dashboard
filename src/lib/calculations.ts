@@ -63,6 +63,24 @@ export function getTimeEntries(filters: DashboardFilters, data: DashboardData = 
   );
 }
 
+export function getOvertimeEntries(
+  filters: DashboardFilters,
+  data: DashboardData = sampleDashboardData
+): TimeEntry[] {
+  const nonExemptWorkerIds = new Set(
+    getWorkers(filters, data)
+      .filter((worker) => worker.exemptStatus === "Non-Exempt")
+      .map((worker) => worker.employeeId)
+  );
+
+  return data.timeEntries.filter(
+    (entry) =>
+      entry.payPeriod === filters.payPeriod &&
+      entry.overtimeHours > 0 &&
+      nonExemptWorkerIds.has(entry.employeeId)
+  );
+}
+
 export function getTotalPayrollCost(results: PayrollResult[]): number {
   return results.reduce(
     (total, result) => total + result.grossPay + result.employerBenefitCost + result.employerTaxCost,
@@ -80,8 +98,10 @@ export function getPayrollCompletionRate(results: PayrollResult[], expectedWorke
     return 0;
   }
 
-  const completeWorkers = results.filter((result) => result.payrollStatus === "Complete").length;
-  return completeWorkers / expectedWorkers;
+  const completeWorkers = new Set(
+    results.filter((result) => result.payrollStatus === "Complete").map((result) => result.employeeId)
+  ).size;
+  return Math.min(completeWorkers / expectedWorkers, 1);
 }
 
 export function getOvertimeCost(entry: TimeEntry, data: DashboardData = sampleDashboardData): number {
@@ -98,7 +118,12 @@ export function getMissingTimeEntries(
   filters: DashboardFilters,
   data: DashboardData = sampleDashboardData
 ): TimeEntry[] {
-  return getTimeEntries(filters, data).filter((entry) => entry.missingDates.length > 0);
+  return getTimeEntries(filters, data).filter((entry) => getEffectiveMissingDates(entry).length > 0);
+}
+
+export function getEffectiveMissingDates(entry: TimeEntry): string[] {
+  const approvedLeaveDates = new Set(entry.approvedLeaveDates);
+  return entry.missingDates.filter((date) => !approvedLeaveDates.has(date));
 }
 
 export function getDeductionExceptions(filters: DashboardFilters, data: DashboardData = sampleDashboardData) {
@@ -135,19 +160,44 @@ function getWorkerName(employeeId: string, data: DashboardData): string {
   return findWorker(employeeId, data)?.employeeName ?? employeeId;
 }
 
+function getPayrollDeadline(results: PayrollResult[], payPeriod: string): { date: string; daysRemaining: number } {
+  const validDate = (value: string | undefined): value is string => Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+  const date = results
+    .map((result) => result.payrollApprovalDate || result.paymentDate)
+    .filter(validDate)
+    .sort()[0] ?? payPeriod.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? new Date().toISOString().slice(0, 10);
+  const [year, month, day] = date.split("-").map(Number);
+  const now = new Date();
+  const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const deadlineUtc = Date.UTC(year, month - 1, day);
+
+  return {
+    date,
+    daysRemaining: Math.ceil((deadlineUtc - todayUtc) / 86_400_000)
+  };
+}
+
 export function getExecutiveHighlights(
   filters: DashboardFilters,
   data: DashboardData = sampleDashboardData
 ): ExecutiveHighlights {
-  const overtime = getTimeEntries(filters, data)
-    .filter((entry) => entry.overtimeHours > 0)
-    .map((entry) => ({
+  const overtimeByWorker = new Map<string, ExecutiveHighlights["overtime"][number]>();
+
+  getOvertimeEntries(filters, data).forEach((entry) => {
+    const current = overtimeByWorker.get(entry.employeeId) ?? {
       employeeId: entry.employeeId,
       employeeName: getWorkerName(entry.employeeId, data),
       department: getWorkerDepartment(entry.employeeId, data),
-      overtimeHours: entry.overtimeHours,
-      overtimeCost: getOvertimeCost(entry, data)
-    }))
+      overtimeHours: 0,
+      overtimeCost: 0
+    };
+
+    current.overtimeHours += entry.overtimeHours;
+    current.overtimeCost += getOvertimeCost(entry, data);
+    overtimeByWorker.set(entry.employeeId, current);
+  });
+
+  const overtime = [...overtimeByWorker.values()]
     .sort((a, b) => b.overtimeHours - a.overtimeHours)
     .slice(0, 5);
 
@@ -156,8 +206,8 @@ export function getExecutiveHighlights(
       employeeId: entry.employeeId,
       employeeName: getWorkerName(entry.employeeId, data),
       department: getWorkerDepartment(entry.employeeId, data),
-      missingDays: entry.missingDates.length,
-      missingDates: entry.missingDates
+      missingDays: getEffectiveMissingDates(entry).length,
+      missingDates: getEffectiveMissingDates(entry)
     }))
     .sort((a, b) => b.missingDays - a.missingDays)
     .slice(0, 5);
@@ -198,10 +248,10 @@ export function getExceptionBreakdown(
   filters: DashboardFilters,
   data: DashboardData = sampleDashboardData
 ): ExceptionBreakdownItem[] {
-  const overtimeCount = getTimeEntries(filters, data).filter((entry) => entry.overtimeHours > 0).length;
-  const missingTimeCount = getMissingTimeEntries(filters, data).length;
-  const deductionCount = getDeductionExceptions(filters, data).length;
-  const taxCount = getTaxExceptions(filters, data).length;
+  const overtimeCount = new Set(getOvertimeEntries(filters, data).map((entry) => entry.employeeId)).size;
+  const missingTimeCount = new Set(getMissingTimeEntries(filters, data).map((entry) => entry.employeeId)).size;
+  const deductionCount = new Set(getDeductionExceptions(filters, data).map((entry) => entry.employeeId)).size;
+  const taxCount = new Set(getTaxExceptions(filters, data).map((entry) => entry.employeeId)).size;
 
   return [
     {
@@ -279,11 +329,8 @@ export function getOvertimeMatrix(filters: DashboardFilters, data: DashboardData
 export function getOpenExceptionWorkerIds(filters: DashboardFilters, data: DashboardData = sampleDashboardData): Set<string> {
   const ids = new Set<string>();
 
-  getTimeEntries(filters, data).forEach((entry) => {
-    if (entry.overtimeHours > 0 || entry.missingDates.length > 0) {
-      ids.add(entry.employeeId);
-    }
-  });
+  getOvertimeEntries(filters, data).forEach((entry) => ids.add(entry.employeeId));
+  getMissingTimeEntries(filters, data).forEach((entry) => ids.add(entry.employeeId));
 
   getDeductionExceptions(filters, data).forEach((result) => ids.add(result.employeeId));
   getTaxExceptions(filters, data).forEach((result) => ids.add(result.employeeId));
@@ -300,8 +347,14 @@ export function getCriticalExceptionWorkerIds(
 ): Set<string> {
   const ids = new Set<string>();
 
-  getTimeEntries(filters, data).forEach((entry) => {
-    if (entry.overtimeHours > 10 || entry.missingDates.length > 3) {
+  getOvertimeEntries(filters, data).forEach((entry) => {
+    if (entry.overtimeHours > 10) {
+      ids.add(entry.employeeId);
+    }
+  });
+
+  getMissingTimeEntries(filters, data).forEach((entry) => {
+    if (getEffectiveMissingDates(entry).length > 3) {
       ids.add(entry.employeeId);
     }
   });
@@ -331,14 +384,15 @@ export function getOverviewMetrics(filters: DashboardFilters, data: DashboardDat
     : [];
   const priorPayrollCost = getTotalPayrollCost(priorResults);
   const expectedWorkers = visibleWorkers.length;
-  const workersProcessed = results.filter((result) => result.payrollStatus === "Complete").length;
+  const workersProcessed = new Set(
+    results.filter((result) => result.payrollStatus === "Complete").map((result) => result.employeeId)
+  ).size;
   const payrollCompletionRate = getPayrollCompletionRate(results, expectedWorkers);
-  const visibleTimeEntries = getTimeEntries(filters, data);
-  const overtimeEntries = visibleTimeEntries.filter((entry) => entry.overtimeHours > 0);
+  const overtimeEntries = getOvertimeEntries(filters, data);
   const overtimeHours = overtimeEntries.reduce((total, entry) => total + entry.overtimeHours, 0);
   const overtimeCost = overtimeEntries.reduce((total, entry) => total + getOvertimeCost(entry, data), 0);
   const priorOvertimeEntries = priorPayPeriod
-    ? getTimeEntries({ ...filters, payPeriod: priorPayPeriod }, data).filter((entry) => entry.overtimeHours > 0)
+    ? getOvertimeEntries({ ...filters, payPeriod: priorPayPeriod }, data)
     : [];
   const priorOvertimeHours = priorOvertimeEntries.reduce((total, entry) => total + entry.overtimeHours, 0);
   const overtimeTrendPercent =
@@ -356,10 +410,9 @@ export function getOverviewMetrics(filters: DashboardFilters, data: DashboardDat
 
   const [topDepartmentName = "None", topDepartmentCount = 0] =
     [...departmentExceptionCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
-  const highestOvertime = [...overtimeEntries].sort((a, b) => b.overtimeHours - a.overtimeHours)[0];
-  const highestOvertimeWorker = highestOvertime
-    ? data.workers.find((worker) => worker.employeeId === highestOvertime.employeeId)
-    : undefined;
+  const highlights = getExecutiveHighlights(filters, data);
+  const highestOvertime = highlights.overtime[0];
+  const payrollDeadline = getPayrollDeadline(results, filters.payPeriod);
 
   return {
     totalPayrollCost,
@@ -369,8 +422,12 @@ export function getOverviewMetrics(filters: DashboardFilters, data: DashboardDat
     payrollCompletionRate,
     openExceptionWorkers: exceptionWorkerIds.size,
     criticalExceptionWorkers: criticalExceptionWorkerIds.size,
-    missingTimeWorkers: getMissingTimeEntries(filters, data).length,
-    workersNearDeadline: getMissingTimeEntries(filters, data).filter((entry) => entry.missingDates.length >= 3).length,
+    missingTimeWorkers: new Set(getMissingTimeEntries(filters, data).map((entry) => entry.employeeId)).size,
+    workersNearDeadline: new Set(
+      getMissingTimeEntries(filters, data)
+        .filter((entry) => getEffectiveMissingDates(entry).length >= 3)
+        .map((entry) => entry.employeeId)
+    ).size,
     overtimeHours,
     overtimeCost,
     overtimeTrendPercent,
@@ -379,12 +436,12 @@ export function getOverviewMetrics(filters: DashboardFilters, data: DashboardDat
       exceptionCount: topDepartmentCount
     },
     highestOvertimeWorker: {
-      name: highestOvertimeWorker?.employeeName ?? "None",
+      name: highestOvertime?.employeeName ?? "None",
       overtimeHours: highestOvertime?.overtimeHours ?? 0
     },
-    approvalDeadline: "2026-08-23",
-    daysToDeadline: 3,
+    approvalDeadline: payrollDeadline.date,
+    daysToDeadline: payrollDeadline.daysRemaining,
     exceptionBreakdown: getExceptionBreakdown(filters, data),
-    highlights: getExecutiveHighlights(filters, data)
+    highlights
   };
 }

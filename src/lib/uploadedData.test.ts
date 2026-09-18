@@ -56,6 +56,79 @@ describe("uploaded Workday-style CSV data", () => {
       payrollCost: 5832,
       payrollCompletionRate: 1
     });
+    expect(data.timeEntries).toEqual([]);
+    expect(data.deductionResults).toEqual([]);
+    expect(data.taxResults).toEqual([]);
+  });
+
+  it("does not silently convert invalid numeric values to zero", () => {
+    const result = parseUploadedDataset(
+      "payrollResults",
+      [
+        "Employee ID,Pay Period,Gross Pay,Net Pay,Payroll Status",
+        "W-2001,2026-09-15 Semi-Monthly,not-a-number,3600,Complete"
+      ].join("\n")
+    );
+
+    expect(result.messages).toContainEqual(
+      expect.objectContaining({
+        message: "Invalid grossPay: use a numeric value.",
+        rowNumber: 2,
+        severity: "error"
+      })
+    );
+  });
+
+  it("rejects blank required values and unsupported statuses", () => {
+    const missingValue = parseUploadedDataset(
+      "payrollResults",
+      [
+        "Employee ID,Pay Period,Gross Pay,Net Pay,Payroll Status",
+        "W-2001,2026-09-15 Semi-Monthly,,3600,Complete"
+      ].join("\n")
+    );
+    const invalidStatus = parseUploadedDataset(
+      "payrollResults",
+      [
+        "Employee ID,Pay Period,Gross Pay,Net Pay,Payroll Status",
+        "W-2001,2026-09-15 Semi-Monthly,5000,3600,Unknown Status"
+      ].join("\n")
+    );
+
+    expect(missingValue.messages).toContainEqual(
+      expect.objectContaining({ message: "Missing required value: grossPay.", rowNumber: 2 })
+    );
+    expect(invalidStatus.messages).toContainEqual(
+      expect.objectContaining({ message: 'Invalid payrollStatus: "Unknown Status" is not supported.', rowNumber: 2 })
+    );
+  });
+
+  it("derives regular and overtime hours when optional columns are omitted", () => {
+    const result = parseUploadedDataset(
+      "timeEntries",
+      [
+        "Employee ID,Pay Period,Week Ending Date,Scheduled Hours,Actual Hours Worked",
+        "W-2001,2026-09-15 Semi-Monthly,2026-09-12,40,45"
+      ].join("\n")
+    );
+
+    expect(result.messages).toHaveLength(0);
+    expect(result.rows[0]).toMatchObject({ regularHours: 40, overtimeHours: 5 });
+  });
+
+  it("keeps completion at zero when payroll rows have no worker master data", () => {
+    const payrollResults = parseUploadedDataset(
+      "payrollResults",
+      [
+        "Employee ID,Pay Period,Gross Pay,Net Pay,Payroll Status",
+        "W-2001,2026-09-15 Semi-Monthly,5000,3600,Complete"
+      ].join("\n")
+    ).rows;
+
+    const data = buildActiveDashboardData({ payrollResults });
+
+    expect(data.workers).toEqual([]);
+    expect(data.kpiHistory[0].payrollCompletionRate).toBe(0);
   });
 
   it("validates upload file type and size before parsing", () => {

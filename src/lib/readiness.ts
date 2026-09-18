@@ -2,9 +2,9 @@ import {
   getDeductionExceptions,
   getMissingTimeEntries,
   getOverviewMetrics,
+  getOvertimeEntries,
   getPayrollResults,
   getTaxExceptions,
-  getTimeEntries,
   getWorkers
 } from "./calculations";
 import type { DashboardData, DashboardFilters, DashboardThresholds, Severity } from "../types/dashboard";
@@ -68,7 +68,7 @@ export function getPayrollReadinessSummary(
   const missingOrgWorkers = workers.filter((worker) => !worker.department || !worker.manager).length;
   const deductionExceptions = getDeductionExceptions(filters, data);
   const taxExceptions = getTaxExceptions(filters, data);
-  const overtimeHours = getTimeEntries(filters, data).reduce((total, entry) => total + entry.overtimeHours, 0);
+  const overtimeHours = getOvertimeEntries(filters, data).reduce((total, entry) => total + entry.overtimeHours, 0);
   const costVariance =
     metrics.priorPayrollCost === 0 ? 0 : Math.abs(metrics.totalPayrollCost - metrics.priorPayrollCost) / metrics.priorPayrollCost;
   const dataQualityIssues = missingPayrollResults + orphanRows + negativePayrollRows + missingOrgWorkers;

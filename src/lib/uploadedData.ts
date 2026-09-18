@@ -1,4 +1,3 @@
-import { sampleDashboardData } from "../data";
 import type {
   DashboardData,
   DeductionExceptionType,
@@ -38,6 +37,29 @@ const datasetRequiredFields: Record<UploadDatasetKey, string[]> = {
   taxResults: ["employeeId", "payPeriod", "taxAuthority", "expectedTax", "actualTax", "exceptionType"]
 };
 
+const datasetNumericFields: Record<UploadDatasetKey, string[]> = {
+  workers: ["hourlyRate"],
+  payrollResults: [
+    "grossPay",
+    "netPay",
+    "totalDeductions",
+    "totalTaxes",
+    "employerBenefitCost",
+    "employerTaxCost"
+  ],
+  timeEntries: [
+    "scheduledHours",
+    "actualHoursWorked",
+    "regularHours",
+    "overtimeHours",
+    "doubleTimeHours",
+    "submittedDays",
+    "expectedDays"
+  ],
+  deductionResults: ["expectedAmount", "actualAmount", "arrearsBalance"],
+  taxResults: ["expectedTax", "actualTax"]
+};
+
 const aliases: Record<string, string[]> = {
   employeeId: ["employeeid", "employee id", "workerid", "worker id", "worker"],
   employeeName: ["employeename", "employee name", "workername", "worker name", "name"],
@@ -55,6 +77,7 @@ const aliases: Record<string, string[]> = {
   active: ["active", "workeractive", "worker active"],
   payPeriod: ["payperiod", "pay period", "period"],
   paymentDate: ["paymentdate", "payment date", "checkdate", "check date"],
+  payrollApprovalDate: ["payrollapprovaldate", "payroll approval date", "approvaldate", "approval date"],
   payrollRun: ["payrollrun", "payroll run", "run"],
   grossPay: ["grosspay", "gross pay"],
   netPay: ["netpay", "net pay"],
@@ -196,12 +219,101 @@ function getValue(record: CsvRecord, field: string): string {
   return "";
 }
 
+function hasField(record: CsvRecord, field: string): boolean {
+  return (aliases[field] ?? [field])
+    .map(normalizeHeader)
+    .some((key) => Object.prototype.hasOwnProperty.call(record, key));
+}
+
 function missingRequiredFields(records: CsvRecord[], dataset: UploadDatasetKey): string[] {
   if (records.length === 0) {
     return datasetRequiredFields[dataset];
   }
 
-  return datasetRequiredFields[dataset].filter((field) => !records.some((record) => getValue(record, field)));
+  return datasetRequiredFields[dataset].filter((field) => !records.some((record) => hasField(record, field)));
+}
+
+function getRequiredValueMessages(dataset: UploadDatasetKey, records: CsvRecord[]): UploadValidationMessage[] {
+  return records.flatMap((record, index) =>
+    datasetRequiredFields[dataset]
+      .filter((field) => !getValue(record, field))
+      .map((field) => ({
+        dataset,
+        message: `Missing required value: ${field}.`,
+        rowNumber: index + 2,
+        severity: "error" as const
+      }))
+  );
+}
+
+function getInvalidNumberMessages(dataset: UploadDatasetKey, records: CsvRecord[]): UploadValidationMessage[] {
+  return records.flatMap((record, index) =>
+    datasetNumericFields[dataset].flatMap((field) => {
+      const value = getValue(record, field);
+
+      if (!value || Number.isFinite(toNumber(value, Number.NaN))) {
+        return [];
+      }
+
+      return [{
+        dataset,
+        message: `Invalid ${field}: use a numeric value.`,
+        rowNumber: index + 2,
+        severity: "error" as const
+      }];
+    })
+  );
+}
+
+function getInvalidChoiceMessages(dataset: UploadDatasetKey, records: CsvRecord[]): UploadValidationMessage[] {
+  const choices: Partial<Record<UploadDatasetKey, Record<string, string[]>>> = {
+    workers: {
+      workerType: ["employee", "contingent worker", "contingent"],
+      exemptStatus: ["exempt", "non exempt"]
+    },
+    payrollResults: {
+      payrollStatus: ["complete", "completed", "error", "failed", "pending", "in progress", "not started"]
+    },
+    timeEntries: {
+      timeEntryStatus: ["draft", "submitted", "approved", "not submitted"]
+    },
+    deductionResults: {
+      deductionCategory: ["medical", "dental", "401k", "garnishment", "hsa", "vision"],
+      exceptionType: ["none", "failed", "fail", "over deducted", "over", "under deducted", "under", "arrears", "arrear"]
+    },
+    taxResults: {
+      taxFormStatus: ["current", "missing", "expired", "pending review"],
+      exceptionType: [
+        "none",
+        "no withholding",
+        "missing tax election",
+        "missing election",
+        "expired tax form",
+        "expired form",
+        "multi state issue",
+        "excess withholding",
+        "over withholding",
+        "under withholding"
+      ]
+    }
+  };
+
+  return records.flatMap((record, index) =>
+    Object.entries(choices[dataset] ?? {}).flatMap(([field, allowedValues]) => {
+      const value = getValue(record, field);
+
+      if (!value || allowedValues.includes(normalizeText(value))) {
+        return [];
+      }
+
+      return [{
+        dataset,
+        message: `Invalid ${field}: "${value}" is not supported.`,
+        rowNumber: index + 2,
+        severity: "error" as const
+      }];
+    })
+  );
 }
 
 function toNumber(value: string, fallback = 0): number {
@@ -345,7 +457,8 @@ function parsePayrollResults(records: CsvRecord[]): PayrollResult[] {
   return records.map((record) => ({
     employeeId: getValue(record, "employeeId"),
     payPeriod: getValue(record, "payPeriod"),
-    paymentDate: getValue(record, "paymentDate") || new Date().toISOString().slice(0, 10),
+    paymentDate: getValue(record, "paymentDate"),
+    payrollApprovalDate: getValue(record, "payrollApprovalDate") || undefined,
     payrollRun: getValue(record, "payrollRun") || "Uploaded Payroll Run",
     grossPay: toNumber(getValue(record, "grossPay")),
     netPay: toNumber(getValue(record, "netPay")),
@@ -358,22 +471,28 @@ function parsePayrollResults(records: CsvRecord[]): PayrollResult[] {
 }
 
 function parseTimeEntries(records: CsvRecord[]): TimeEntry[] {
-  return records.map((record) => ({
-    employeeId: getValue(record, "employeeId"),
-    payPeriod: getValue(record, "payPeriod"),
-    weekEndingDate: getValue(record, "weekEndingDate"),
-    scheduledHours: toNumber(getValue(record, "scheduledHours")),
-    actualHoursWorked: toNumber(getValue(record, "actualHoursWorked")),
-    regularHours: toNumber(getValue(record, "regularHours")),
-    overtimeHours: toNumber(getValue(record, "overtimeHours")),
-    doubleTimeHours: toNumber(getValue(record, "doubleTimeHours")),
-    submittedDays: toNumber(getValue(record, "submittedDays")),
-    expectedDays: toNumber(getValue(record, "expectedDays")),
-    missingDates: toList(getValue(record, "missingDates")),
-    approvedLeaveDates: toList(getValue(record, "approvedLeaveDates")),
-    lastSubmissionDate: getValue(record, "lastSubmissionDate") || undefined,
-    timeEntryStatus: (getValue(record, "timeEntryStatus") as TimeEntry["timeEntryStatus"]) || "Submitted"
-  }));
+  return records.map((record) => {
+    const actualHoursWorked = toNumber(getValue(record, "actualHoursWorked"));
+    const regularHours = getValue(record, "regularHours");
+    const overtimeHours = getValue(record, "overtimeHours");
+
+    return {
+      employeeId: getValue(record, "employeeId"),
+      payPeriod: getValue(record, "payPeriod"),
+      weekEndingDate: getValue(record, "weekEndingDate"),
+      scheduledHours: toNumber(getValue(record, "scheduledHours")),
+      actualHoursWorked,
+      regularHours: regularHours ? toNumber(regularHours) : Math.min(actualHoursWorked, 40),
+      overtimeHours: overtimeHours ? toNumber(overtimeHours) : Math.max(actualHoursWorked - 40, 0),
+      doubleTimeHours: toNumber(getValue(record, "doubleTimeHours")),
+      submittedDays: toNumber(getValue(record, "submittedDays")),
+      expectedDays: toNumber(getValue(record, "expectedDays")),
+      missingDates: toList(getValue(record, "missingDates")),
+      approvedLeaveDates: toList(getValue(record, "approvedLeaveDates")),
+      lastSubmissionDate: getValue(record, "lastSubmissionDate") || undefined,
+      timeEntryStatus: (getValue(record, "timeEntryStatus") as TimeEntry["timeEntryStatus"]) || "Submitted"
+    };
+  });
 }
 
 function parseDeductionResults(records: CsvRecord[]): DeductionResult[] {
@@ -402,35 +521,6 @@ function parseTaxResults(records: CsvRecord[]): TaxResult[] {
   }));
 }
 
-function getRowValidationMessages(
-  dataset: UploadDatasetKey,
-  rows: Array<{ employeeId: string; payPeriod?: string }>
-): UploadValidationMessage[] {
-  return rows.flatMap((row, index) => {
-    const messages: UploadValidationMessage[] = [];
-
-    if (!row.employeeId) {
-      messages.push({
-        dataset,
-        message: "Missing employee ID.",
-        rowNumber: index + 2,
-        severity: "error"
-      });
-    }
-
-    if ("payPeriod" in row && !row.payPeriod) {
-      messages.push({
-        dataset,
-        message: "Missing pay period.",
-        rowNumber: index + 2,
-        severity: "error"
-      });
-    }
-
-    return messages;
-  });
-}
-
 function getInvalidDateMessages(dataset: UploadDatasetKey, rows: DashboardData[UploadDatasetKey]): UploadValidationMessage[] {
   const messages: UploadValidationMessage[] = [];
 
@@ -448,7 +538,9 @@ function getInvalidDateMessages(dataset: UploadDatasetKey, rows: DashboardData[U
     };
 
     if (dataset === "payrollResults") {
-      addDateMessage("paymentDate", (row as PayrollResult).paymentDate);
+      const payrollResult = row as PayrollResult;
+      addDateMessage("paymentDate", payrollResult.paymentDate);
+      addDateMessage("payrollApprovalDate", payrollResult.payrollApprovalDate ?? "");
     }
 
     if (dataset === "timeEntries") {
@@ -522,7 +614,9 @@ export function parseUploadedDataset(
 
   const dashboardRows = parsedRows as DashboardData[UploadDatasetKey];
   const messages = [
-    ...getRowValidationMessages(dataset, parsedRows),
+    ...getRequiredValueMessages(dataset, records),
+    ...getInvalidNumberMessages(dataset, records),
+    ...getInvalidChoiceMessages(dataset, records),
     ...getInvalidDateMessages(dataset, dashboardRows)
   ];
 
@@ -546,7 +640,10 @@ function uniquePayPeriods(data: Pick<DashboardData, "payrollResults" | "timeEntr
 }
 
 function deriveKpiHistory(data: DashboardData) {
-  const activeWorkerCount = data.workers.filter((worker) => worker.active).length || 1;
+  const activeWorkers = data.workers.filter((worker) => worker.active);
+  const activeWorkerIds = new Set(activeWorkers.map((worker) => worker.employeeId));
+  const activeWorkerCount = activeWorkers.length;
+  const workersById = new Map(data.workers.map((worker) => [worker.employeeId, worker]));
 
   return data.payPeriods.map((payPeriod) => {
     const payrollRows = data.payrollResults.filter((row) => row.payPeriod === payPeriod);
@@ -555,26 +652,42 @@ function deriveKpiHistory(data: DashboardData) {
     const taxRows = data.taxResults.filter((row) => row.payPeriod === payPeriod && row.exceptionType !== "None");
     const exceptionWorkerIds = new Set<string>();
 
-    timeRows.forEach((row) => {
-      if (row.overtimeHours > 0 || row.missingDates.length > 0) {
+    payrollRows.forEach((row) => {
+      if (row.payrollStatus === "Error" && activeWorkerIds.has(row.employeeId)) {
         exceptionWorkerIds.add(row.employeeId);
       }
     });
-    deductionRows.forEach((row) => exceptionWorkerIds.add(row.employeeId));
-    taxRows.forEach((row) => exceptionWorkerIds.add(row.employeeId));
+    timeRows.forEach((row) => {
+      if (row.overtimeHours > 0 || row.missingDates.length > 0) {
+        if (activeWorkerIds.has(row.employeeId)) {
+          exceptionWorkerIds.add(row.employeeId);
+        }
+      }
+    });
+    deductionRows.forEach((row) => activeWorkerIds.has(row.employeeId) && exceptionWorkerIds.add(row.employeeId));
+    taxRows.forEach((row) => activeWorkerIds.has(row.employeeId) && exceptionWorkerIds.add(row.employeeId));
+    const payrollCost = payrollRows.reduce(
+      (total, row) => total + row.grossPay + row.employerBenefitCost + row.employerTaxCost,
+      0
+    );
+    const overtimeCost = timeRows.reduce((total, row) => {
+      const worker = workersById.get(row.employeeId);
+      return worker?.exemptStatus === "Non-Exempt"
+        ? total + row.overtimeHours * 1.5 * worker.hourlyRate + row.doubleTimeHours * 2 * worker.hourlyRate
+        : total;
+    }, 0);
+    const completedWorkerCount = new Set(
+      payrollRows
+        .filter((row) => row.payrollStatus === "Complete" && activeWorkerIds.has(row.employeeId))
+        .map((row) => row.employeeId)
+    ).size;
 
     return {
       payPeriod,
-      payrollCost: payrollRows.reduce(
-        (total, row) => total + row.grossPay + row.employerBenefitCost + row.employerTaxCost,
-        0
-      ),
-      exceptionRate: exceptionWorkerIds.size / activeWorkerCount,
-      overtimeCostRatio: 0,
-      payrollCompletionRate:
-        payrollRows.length === 0
-          ? 0
-          : payrollRows.filter((row) => row.payrollStatus === "Complete").length / activeWorkerCount
+      payrollCost,
+      exceptionRate: activeWorkerCount === 0 ? 0 : exceptionWorkerIds.size / activeWorkerCount,
+      overtimeCostRatio: payrollCost === 0 ? 0 : overtimeCost / payrollCost,
+      payrollCompletionRate: activeWorkerCount === 0 ? 0 : completedWorkerCount / activeWorkerCount
     };
   });
 }
@@ -595,7 +708,12 @@ function deriveOvertimeTrends(data: DashboardData) {
 
   data.timeEntries.forEach((entry) => {
     const worker = workersById.get(entry.employeeId);
-    const department = worker?.department ?? "Unassigned";
+
+    if (!worker || worker.exemptStatus === "Exempt") {
+      return;
+    }
+
+    const department = worker.department;
     const key = `${department}|${entry.weekEndingDate}`;
     const current = trendMap.get(key) ?? {
       department,
@@ -604,7 +722,7 @@ function deriveOvertimeTrends(data: DashboardData) {
       overtimeHours: 0,
       overtimeCost: 0
     };
-    const hourlyRate = worker?.exemptStatus === "Exempt" ? 0 : worker?.hourlyRate ?? 0;
+    const hourlyRate = worker.hourlyRate;
 
     current.overtimeHours += entry.overtimeHours;
     current.overtimeCost += entry.overtimeHours * 1.5 * hourlyRate + entry.doubleTimeHours * 2 * hourlyRate;
@@ -618,14 +736,20 @@ function deriveOvertimeTrends(data: DashboardData) {
 
 export function buildActiveDashboardData(uploadedDatasets: UploadedDatasetMap): DashboardData {
   const mergedData: DashboardData = {
-    ...sampleDashboardData,
-    ...uploadedDatasets
+    workers: uploadedDatasets.workers ?? [],
+    payrollResults: uploadedDatasets.payrollResults ?? [],
+    timeEntries: uploadedDatasets.timeEntries ?? [],
+    deductionResults: uploadedDatasets.deductionResults ?? [],
+    taxResults: uploadedDatasets.taxResults ?? [],
+    kpiHistory: [],
+    overtimeTrends: [],
+    payPeriods: []
   };
 
   const payPeriods = uniquePayPeriods(mergedData);
   const dataWithPeriods = {
     ...mergedData,
-    payPeriods: payPeriods.length > 0 ? payPeriods : sampleDashboardData.payPeriods
+    payPeriods
   };
 
   return {

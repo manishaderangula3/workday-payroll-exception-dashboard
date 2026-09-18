@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   getExceptionBreakdown,
+  getEffectiveMissingDates,
   getExecutiveHighlights,
+  getOvertimeEntries,
   getOvertimeMatrix,
+  getPayrollCompletionRate,
   getPayrollTrend,
   getOverviewMetrics,
   getWorkers
@@ -10,6 +13,7 @@ import {
 import { defaultThresholds } from "../data/thresholds";
 import { sampleDashboardData } from "../data";
 import { getPayrollReadinessSummary } from "./readiness";
+import type { DashboardData, PayrollResult, TimeEntry } from "../types/dashboard";
 
 const currentFilters = {
   payPeriod: "2026-08-15 Semi-Monthly",
@@ -49,6 +53,19 @@ describe("dashboard sample data calculations", () => {
       name: "Operations",
       exceptionCount: 5
     });
+  });
+
+  it("uses the source payroll approval date for the deadline", () => {
+    const data: DashboardData = {
+      ...sampleDashboardData,
+      payrollResults: sampleDashboardData.payrollResults.map((result) =>
+        result.payPeriod === currentFilters.payPeriod
+          ? { ...result, payrollApprovalDate: "2026-08-18" }
+          : result
+      )
+    };
+
+    expect(getOverviewMetrics(currentFilters, data).approvalDeadline).toBe("2026-08-18");
   });
 
   it("returns the Workday report exception mix used by tab badges", () => {
@@ -134,5 +151,39 @@ describe("dashboard sample data calculations", () => {
       status: "critical",
       value: "8 of 12 workers complete"
     });
+  });
+
+  it("counts each completed worker once", () => {
+    const duplicateResults = [
+      { employeeId: "W-1", payrollStatus: "Complete" },
+      { employeeId: "W-1", payrollStatus: "Complete" }
+    ] as PayrollResult[];
+
+    expect(getPayrollCompletionRate(duplicateResults, 1)).toBe(1);
+  });
+
+  it("excludes approved leave dates from missing time", () => {
+    const entry = {
+      missingDates: ["2026-09-10", "2026-09-11"],
+      approvedLeaveDates: ["2026-09-10"]
+    } as TimeEntry;
+
+    expect(getEffectiveMissingDates(entry)).toEqual(["2026-09-11"]);
+  });
+
+  it("excludes exempt workers from overtime results", () => {
+    const data: DashboardData = {
+      ...sampleDashboardData,
+      workers: sampleDashboardData.workers.slice(0, 1).map((worker) => ({ ...worker, exemptStatus: "Exempt" })),
+      timeEntries: [sampleDashboardData.timeEntries[0]],
+      payrollResults: [],
+      deductionResults: [],
+      taxResults: [],
+      payPeriods: [currentFilters.payPeriod],
+      kpiHistory: [],
+      overtimeTrends: []
+    };
+
+    expect(getOvertimeEntries(currentFilters, data)).toEqual([]);
   });
 });

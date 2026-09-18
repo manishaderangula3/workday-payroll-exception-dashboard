@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, ShieldAlert } from "lucide-react";
 import { downloadCsv, sanitizeFileName, type CsvRow } from "../lib/csvExport";
 import { getOverviewMetrics } from "../lib/calculations";
-import { formatDateShort, formatPercent } from "../lib/formatters";
+import { formatDateShort, formatDeadlineCountdown, formatPercent } from "../lib/formatters";
 import { getPayrollReadinessSummary } from "../lib/readiness";
 import type { DashboardData, DashboardFilters, DashboardThresholds, Severity } from "../types/dashboard";
 
@@ -113,7 +113,7 @@ export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterPr
         <article className="dashboard-panel p-4">
           <p className="text-sm font-semibold text-slate-500">Approval Deadline</p>
           <p className="mt-2 text-3xl font-semibold text-workday-ink">{formatDateShort(metrics.approvalDeadline)}</p>
-          <p className="mt-1 text-sm text-slate-600">{metrics.daysToDeadline} days remaining</p>
+          <p className="mt-1 text-sm text-slate-600">{formatDeadlineCountdown(metrics.daysToDeadline)}</p>
         </article>
         <article className="dashboard-panel p-4">
           <p className="text-sm font-semibold text-slate-500">Open Blockers</p>

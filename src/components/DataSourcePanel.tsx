@@ -63,8 +63,8 @@ export function DataSourcePanel({
                   : "Backend proxy data"}
             </h2>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
-              Upload CSV exports to replace sample workers, payroll, time, deduction, or tax records. KPIs, tabs,
-              charts, filters, and drill-downs recalculate from the active dataset.
+              Upload CSV exports to build one isolated dataset. KPIs, tabs, charts, filters, and drill-downs
+              recalculate from uploaded rows only, without mixing in sample records.
             </p>
           </div>
         </div>
@@ -169,7 +169,7 @@ export function DataSourcePanel({
           </p>
           <p className="mt-2 text-sm text-slate-600">
             {mode === "uploaded"
-              ? `${uploadedCount} uploaded dataset${uploadedCount === 1 ? "" : "s"} active. Missing datasets fall back to sample data.`
+              ? `${uploadedCount} uploaded dataset${uploadedCount === 1 ? "" : "s"} active. Missing datasets remain empty; upload Workers for report joins and worker-level KPIs.`
               : mode === "proxy"
                 ? "Backend proxy data is active. Rows are scoped by the signed-in user's role before rendering."
                 : "Sample fixtures are active. Upload CSV files or load backend proxy data for real export review."}

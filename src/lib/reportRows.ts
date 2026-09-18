@@ -1,6 +1,8 @@
 import {
   getDeductionExceptions,
+  getEffectiveMissingDates,
   getOvertimeCost,
+  getOvertimeEntries,
   getPayrollResults,
   getTaxExceptions,
   getTimeEntries,
@@ -78,8 +80,7 @@ export function getOvertimeReportRows(
 ): OvertimeReportRow[] {
   const workersById = workerMap(filters, data);
 
-  return getTimeEntries(filters, data)
-    .filter((entry) => entry.overtimeHours > 0)
+  return getOvertimeEntries(filters, data)
     .map((entry) => {
       const worker = getWorkerOrThrow(workersById, entry.employeeId);
 
@@ -109,9 +110,10 @@ export function getMissingTimeReportRows(
   const workersById = workerMap(filters, data);
 
   return getTimeEntries(filters, data)
-    .filter((entry) => entry.missingDates.length > 0)
+    .filter((entry) => getEffectiveMissingDates(entry).length > 0)
     .map((entry) => {
       const worker = getWorkerOrThrow(workersById, entry.employeeId);
+      const missingDates = getEffectiveMissingDates(entry);
 
       return {
         employeeId: entry.employeeId,
@@ -122,8 +124,8 @@ export function getMissingTimeReportRows(
         workSchedule: worker.workSchedule,
         expectedWorkDays: entry.expectedDays,
         submittedTimeEntryDays: entry.submittedDays,
-        missingDays: entry.missingDates.length,
-        missingDates: entry.missingDates,
+        missingDays: missingDates.length,
+        missingDates,
         lastSubmissionDate: entry.lastSubmissionDate ?? "No submission",
         timeEntryStatus: entry.timeEntryStatus,
         missingTimeFlag: true

@@ -104,8 +104,15 @@ export function App() {
     setThresholds((currentThresholds) => ({ ...currentThresholds, ...updates }));
   }
 
-  function handleRefresh() {
+  async function handleRefresh() {
     setIsRefreshing(true);
+
+    if (dataSourceMode === "proxy" && authUser) {
+      await handleLoadProxyData();
+      setIsRefreshing(false);
+      return;
+    }
+
     window.setTimeout(() => {
       setLastUpdated(new Date());
       setIsRefreshing(false);
@@ -215,15 +222,13 @@ export function App() {
           ? "Loaded role-scoped Workday RaaS/API data from the backend proxy."
           : "Loaded role-scoped demo data from the backend proxy. Configure Workday URLs to use live RaaS/API data."
       );
-      if (response.warnings.length > 0) {
-        setUploadMessages(
-          response.warnings.map((message) => ({
-            dataset: "workers",
-            message,
-            severity: "warning"
-          }))
-        );
-      }
+      setUploadMessages(
+        response.warnings.map((message) => ({
+          dataset: "workers",
+          message,
+          severity: "warning"
+        }))
+      );
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : "Unable to load backend proxy data.");
     } finally {

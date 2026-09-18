@@ -52,6 +52,14 @@ export function formatDateShort(value: string): string {
   }).format(new Date(`${value}T00:00:00`));
 }
 
+export function formatDeadlineCountdown(days: number): string {
+  if (days === 0) {
+    return "Due today";
+  }
+
+  return days > 0 ? `${days} days remaining` : `${Math.abs(days)} days overdue`;
+}
+
 export function getStatusSeverity(status: PayrollStatus): Severity {
   if (status === "Complete") {
     return "success";

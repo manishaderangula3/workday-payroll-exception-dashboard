@@ -2,12 +2,13 @@
 
 ## Purpose
 
-This dashboard now supports two data source modes:
+This dashboard supports three isolated data source modes:
 
 | Mode | Use Case | Notes |
 | --- | --- | --- |
 | Sample Data | Portfolio demo using synthetic Workday-style fixtures | Default mode. No real worker data required. |
-| Uploaded Data | Review current Workday report exports from CSV files | Uploaded datasets replace matching sample datasets and recalculate the dashboard. |
+| Uploaded Data | Review current Workday report exports from CSV files | Uploaded rows are used exclusively; datasets not uploaded remain empty. |
+| Backend Proxy | Load role-scoped Workday RaaS/API data | Configured endpoints are fetched again on refresh; missing or failed datasets remain empty and show warnings. |
 
 The upload feature is the safest first step before a Workday RaaS or API connection. It lets a Payroll Analyst, HRIS Analyst, Workday Reporting Analyst, or Consultant demonstrate real report-output analysis without storing Workday credentials in the browser.
 
@@ -46,8 +47,8 @@ W-2001,Alex Rivera,Payroll Ops,Casey Smith,casey.smith@example.com,Uploaded Co,U
 ### Payroll Results
 
 ```csv
-Employee ID,Pay Period,Payment Date,Payroll Run,Gross Pay,Net Pay,Total Deductions,Total Taxes,Employer Benefit Cost,Employer Tax Cost,Payroll Status
-W-2001,2026-09-15 Semi-Monthly,2026-09-20,PR-2026-09A,5000,3600,600,800,450,382,Complete
+Employee ID,Pay Period,Payment Date,Payroll Approval Date,Payroll Run,Gross Pay,Net Pay,Total Deductions,Total Taxes,Employer Benefit Cost,Employer Tax Cost,Payroll Status
+W-2001,2026-09-15 Semi-Monthly,2026-09-20,2026-09-18,PR-2026-09A,5000,3600,600,800,450,382,Complete
 ```
 
 ### Time Entries

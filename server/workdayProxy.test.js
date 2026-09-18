@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { getUsers, readJsonBody, resolveStaticFilePath, verifyPassword } from "./workdayProxy.js";
+import { describe, expect, it, vi } from "vitest";
+import { getUsers, loadWorkdayData, readJsonBody, resolveStaticFilePath, verifyPassword } from "./workdayProxy.js";
 
 function requestFromText(text) {
   return {
@@ -62,6 +62,42 @@ describe("backend proxy hardening", () => {
       } else {
         process.env.NODE_ENV = originalNodeEnv;
       }
+    }
+  });
+
+  it("does not mix demo rows into a partially configured Workday response", async () => {
+    const keys = [
+      "WORKDAY_WORKERS_URL",
+      "WORKDAY_PAYROLL_RESULTS_URL",
+      "WORKDAY_TIME_ENTRIES_URL",
+      "WORKDAY_DEDUCTION_RESULTS_URL",
+      "WORKDAY_TAX_RESULTS_URL"
+    ];
+    const originalValues = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+
+    keys.forEach((key) => delete process.env[key]);
+    process.env.WORKDAY_WORKERS_URL = "https://workday.example/workers";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ employeeId: "W-LIVE-1" }] })
+    }));
+
+    try {
+      const result = await loadWorkdayData();
+
+      expect(result.source).toBe("workday");
+      expect(result.data.workers).toEqual([{ employeeId: "W-LIVE-1" }]);
+      expect(result.data.payrollResults).toEqual([]);
+      expect(result.warnings).toContain("payrollResults URL is not configured; dataset returned empty.");
+    } finally {
+      vi.unstubAllGlobals();
+      keys.forEach((key) => {
+        if (typeof originalValues[key] === "undefined") {
+          delete process.env[key];
+        } else {
+          process.env[key] = originalValues[key];
+        }
+      });
     }
   });
 });

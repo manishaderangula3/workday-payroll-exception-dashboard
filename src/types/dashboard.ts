@@ -93,6 +93,7 @@ export interface PayrollResult {
   employeeId: string;
   payPeriod: string;
   paymentDate: string;
+  payrollApprovalDate?: string;
   payrollRun: string;
   grossPay: number;
   netPay: number;

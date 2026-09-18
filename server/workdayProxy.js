@@ -393,19 +393,24 @@ async function loadWorkdayData() {
   };
   const warnings = [];
 
+  Object.entries(urls)
+    .filter(([, url]) => !url)
+    .forEach(([dataset]) => warnings.push(`${dataset} URL is not configured; dataset returned empty.`));
+
   for (const [dataset, url] of configuredEntries) {
     try {
       data[dataset] = await fetchWorkdayDataset(url);
+
+      if (data[dataset].length === 0) {
+        warnings.push(`${dataset} returned no rows.`);
+      }
     } catch (error) {
       warnings.push(`${dataset} failed: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
 
   return {
-    data: {
-      ...demoDashboardData,
-      ...Object.fromEntries(Object.entries(data).filter(([, rows]) => rows.length > 0))
-    },
+    data,
     source: "workday",
     warnings
   };
@@ -606,4 +611,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   });
 }
 
-export { getUsers, readJsonBody, resolveStaticFilePath, server, verifyPassword };
+export { getUsers, loadWorkdayData, readJsonBody, resolveStaticFilePath, server, verifyPassword };
