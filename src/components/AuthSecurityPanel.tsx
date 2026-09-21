@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 import type { AuthenticatedUser } from "../types/dashboard";
 
 interface AuthSecurityPanelProps {
+  authMode: "local" | "azure_easy_auth";
   isLoading: boolean;
   message: string | null;
   onLoadProxyData: () => void;
@@ -19,6 +20,7 @@ function roleLabel(role: string) {
 }
 
 export function AuthSecurityPanel({
+  authMode,
   isLoading,
   message,
   onLoadProxyData,
@@ -98,6 +100,11 @@ export function AuthSecurityPanel({
             </p>
           </div>
         </div>
+      ) : authMode === "azure_easy_auth" ? (
+        <a className="primary-action mt-4 w-fit" href="/.auth/login/aad?post_login_redirect_uri=/">
+          <LogIn className="h-4 w-4" aria-hidden="true" />
+          Sign in with Microsoft
+        </a>
       ) : (
         <form className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_auto]" onSubmit={handleSubmit}>
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">

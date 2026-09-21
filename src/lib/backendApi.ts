@@ -2,6 +2,9 @@ import type { AuthenticatedUser, DashboardData } from "../types/dashboard";
 
 export interface BackendSessionResponse {
   authenticated: boolean;
+  authMode: "local" | "azure_easy_auth";
+  loginUrl?: string;
+  logoutUrl?: string;
   user: AuthenticatedUser | null;
 }
 
@@ -50,4 +53,22 @@ export function logoutFromBackend() {
 
 export function loadBackendDashboardData() {
   return requestJson<BackendDataResponse>("/api/workday/dashboard-data");
+}
+
+export function getAcknowledgements(payPeriod: string) {
+  return requestJson<{ employeeIds: string[] }>(`/api/acknowledgements?payPeriod=${encodeURIComponent(payPeriod)}`);
+}
+
+export function acknowledgeException(employeeId: string, payPeriod: string) {
+  return requestJson<{ event: { id: string } }>("/api/acknowledgements", {
+    body: JSON.stringify({ employeeId, payPeriod }),
+    method: "POST"
+  });
+}
+
+export function createWorkdayInboxTask(employeeId: string, payPeriod: string) {
+  return requestJson<{ event: { id: string } }>("/api/actions/workday-inbox", {
+    body: JSON.stringify({ employeeId, payPeriod }),
+    method: "POST"
+  });
 }

@@ -1,0 +1,7 @@
+{
+  "tenantBuild": { "status": "pending", "approvedBy": "", "approvedAt": "", "evidence": "" },
+  "security": { "status": "pending", "approvedBy": "", "approvedAt": "", "evidence": "" },
+  "payrollGl": { "status": "pending", "approvedBy": "", "approvedAt": "", "evidence": "" },
+  "performance": { "status": "pending", "approvedBy": "", "approvedAt": "", "evidence": "" },
+  "uat": { "status": "pending", "approvedBy": "", "approvedAt": "", "evidence": "" }
+}

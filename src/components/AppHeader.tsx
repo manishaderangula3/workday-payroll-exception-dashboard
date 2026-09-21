@@ -1,4 +1,5 @@
-import { BarChart3, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { BarChart3, Check, Link, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import type { DashboardFilters, FilterOptions } from "../types/dashboard";
 
 interface AppHeaderProps {
@@ -8,6 +9,7 @@ interface AppHeaderProps {
   roleTitle: string;
   onFilterChange: (updates: Partial<DashboardFilters>) => void;
   onRefresh: () => void;
+  onCopyLink: () => Promise<void>;
 }
 
 export function AppHeader({
@@ -15,9 +17,18 @@ export function AppHeader({
   filterOptions,
   isRefreshing,
   onFilterChange,
+  onCopyLink,
   onRefresh,
   roleTitle
 }: AppHeaderProps) {
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  async function handleCopyLink() {
+    await onCopyLink();
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 2000);
+  }
+
   return (
     <header className="border-b border-white/70 bg-white/90 shadow-sm backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8">
@@ -55,6 +66,16 @@ export function AppHeader({
                 type="search"
               />
             </div>
+            <button
+              aria-label="Copy saved report link"
+              className="secondary-action"
+              onClick={() => void handleCopyLink()}
+              title="Copy a link to the current tab and filters"
+              type="button"
+            >
+              {linkCopied ? <Check className="h-4 w-4" aria-hidden="true" /> : <Link className="h-4 w-4" aria-hidden="true" />}
+              {linkCopied ? "Link Copied" : "Copy Link"}
+            </button>
             <button
               className="primary-action"
               disabled={isRefreshing}

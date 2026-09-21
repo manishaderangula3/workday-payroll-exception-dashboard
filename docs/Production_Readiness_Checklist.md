@@ -7,7 +7,8 @@
 | React dashboard app | Ready | Host through the selected full-stack Node deployment path when backend proxy mode is enabled. |
 | Sample data mode | Ready | Use only synthetic data for public demos. |
 | CSV upload mode | Ready for controlled demos | Use sanitized exports only unless the app is hosted in an approved secure environment. |
-| Workday RaaS/API integration | Backend proxy implemented | Configure Workday report URLs and backend-only credentials before live tenant use. |
+| Workday RaaS/API integration | Validating proxy implemented | Configure tenant URLs and validate normalized rows, pagination, and retry behavior against live RaaS output. |
+| Enterprise authentication | Entra Easy Auth adapter implemented | Configure the App Service identity provider, app roles, user scopes, and security tests. |
 | Workday tenant reports | Specified | Must be configured and validated in the target tenant. |
 | Workday security | Documented | Must be tested with actual Payroll, HRIS, Manager, Finance, Benefits, and Tax roles. |
 | Tenant go-live execution pack | Complete | Runbooks and sign-off templates are documented for live tenant execution. |
@@ -20,11 +21,16 @@
 | Unit tests pass | Complete | `npm test` |
 | Dependency audit is clean | Complete | `npm audit --audit-level=low` |
 | Upload validation exists | Complete | CSV type, empty file, and 5 MB size checks. |
-| CSV export is hardened | Complete | Formula-like values are neutralized before export. |
+| Formatted Excel export | Complete | The app generates `.xlsx` workbooks with report metadata, frozen headers, filters, widths, and number formats. |
 | Runtime errors fail gracefully | Complete | React error boundary wraps the app. |
 | Real payroll credentials excluded | Complete | No Workday credentials, tokens, passwords, or API keys in frontend code. |
 | Backend proxy exists | Complete | Node proxy serves `/api` endpoints and built dashboard assets. |
-| External role security exists | Complete | Signed HTTP-only session cookie and backend RBAC filter data before browser delivery. |
+| External role security exists | Complete in code | Entra Easy Auth adapter, local development sessions, backend RBAC, masking, and export authorization are implemented. |
+| RaaS runtime validation | Complete in code | Alias normalization, required-field validation, invalid-row rejection, retry, bounded pagination, and same-origin pagination checks. |
+| Workflow persistence | Complete in code | Append-only acknowledgement/action audit history and role-scoped APIs. |
+| Workday actions | Configuration required | Time-entry deep links use source URLs; Inbox task creation uses `WORKDAY_INBOX_TASK_URL`. |
+| Saved report links | Complete | Current tab and prompts are URL-backed and copyable. |
+| Scheduled distribution | Configuration required | Interval scheduler posts aggregate summaries and saved links to an approved Logic App/Power Automate webhook. |
 | Hosted deployment decision | Complete | Full-stack Node.js hosting selected; see `docs/Hosting_Deployment_Decision.md`. |
 | Browser visual regression tests | Complete | Playwright desktop, mobile, and proxy role-scope screenshots are configured. |
 | Documentation linked | Complete | README links build plan, QA audit, and real-time data integration guide. |
@@ -33,6 +39,11 @@
 | Payroll/GL reconciliation plan | Complete | `testing/Payroll_GL_Reconciliation_Plan.md` |
 | Performance test plan | Complete | `testing/Performance_Testing_Plan.md` |
 | UAT sign-off packet | Complete | `testing/UAT_Signoff_Packet.md` |
+| Production evidence gate | Complete | `npm run validate:production` blocks release until all five external approvals are recorded. |
+
+## Enforced Release Gate
+
+Run `npm run validate:production` before deployment. The command intentionally fails while `testing/production-evidence.json` contains pending items. It passes only when tenant build validation, security approval, payroll/GL reconciliation, performance testing, and UAT each include an approved status, approver, timestamp, and evidence reference. This prevents documentation templates from being mistaken for executed production validation.
 
 ## Workday Tenant Go-Live Checklist
 
@@ -56,8 +67,8 @@
 - Store Workday credentials only in an approved backend secret store.
 - Never place Workday tenant credentials or bearer tokens in React frontend code.
 - Use HTTPS and approved hosting controls for any environment that handles real payroll exports.
-- Set `SESSION_SECRET`, `COOKIE_SECURE=true`, and production Workday endpoint credentials through the hosting platform's secret manager.
+- Set `AUTH_MODE=azure_easy_auth`, `SESSION_SECRET`, `COOKIE_SECURE=true`, and Workday credentials through the hosting platform's secret manager.
 
 ## Final Recommendation
 
-The coded dashboard is ready for portfolio presentation, controlled upload-based demos, and production-style hosted validation. The live Workday tenant activities cannot be marked complete until executed by approved tenant users, but the runbooks, test plans, reconciliation plan, and sign-off packet are now ready to support that production process.
+The coded dashboard is ready for portfolio presentation and controlled hosted validation. Production release remains blocked by the evidence gate until approved tenant users execute and sign the Workday build validation, security tests, payroll/GL reconciliation, volume tests, and UAT. The repository does not fabricate those external approvals.

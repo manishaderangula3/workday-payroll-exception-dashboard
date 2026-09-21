@@ -44,11 +44,24 @@ function getDefaultFilters(payPeriod = "2026-08-15 Semi-Monthly"): DashboardFilt
   };
 }
 
+function getInitialFilters(payPeriod: string): DashboardFilters {
+  const defaults = getDefaultFilters(payPeriod);
+  const params = new URLSearchParams(window.location.search);
+  return {
+    payPeriod: params.get("payPeriod") || defaults.payPeriod,
+    company: params.get("company") || defaults.company,
+    payGroup: params.get("payGroup") || defaults.payGroup,
+    department: params.get("department") || defaults.department,
+    searchTerm: params.get("search") || defaults.searchTerm
+  };
+}
+
 export function App() {
   const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("sample");
   const [uploadedDatasets, setUploadedDatasets] = useState<UploadedDatasetMap>({});
   const [proxyDatasets, setProxyDatasets] = useState<UploadedDatasetMap>({});
   const [authUser, setAuthUser] = useState<AuthenticatedUser | null>(null);
+  const [authMode, setAuthMode] = useState<"local" | "azure_easy_auth">("local");
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [uploadSummaries, setUploadSummaries] = useState<Partial<Record<UploadDatasetKey, UploadedDatasetSummary>>>({});
@@ -65,10 +78,10 @@ export function App() {
     return sampleDashboardData;
   }, [dataSourceMode, proxyDatasets, uploadedDatasets]);
   const filterOptions = useMemo(() => getFilterOptions(activeData), [activeData]);
-  const [filters, setFilters] = useState<DashboardFilters>(() => getDefaultFilters(sampleDashboardData.payPeriods[0]));
+  const [filters, setFilters] = useState<DashboardFilters>(() => getInitialFilters(sampleDashboardData.payPeriods[0]));
   const [thresholds, setThresholds] = useState<DashboardThresholds>(defaultThresholds);
   const [activeRole, setActiveRole] = useState<RoleKey>("workday-payroll-analyst");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(() => new URLSearchParams(window.location.search).get("tab") || "overview");
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const activeRoleTitle = roleLenses.find((role) => role.key === activeRole)?.title ?? "Payroll Stakeholders";
@@ -76,6 +89,7 @@ export function App() {
   useEffect(() => {
     getBackendSession()
       .then((session) => {
+        setAuthMode(session.authMode);
         setAuthUser(session.user);
         setAuthMessage(session.authenticated ? "Backend session restored." : "Sign in to load role-scoped proxy data.");
       })
@@ -95,6 +109,17 @@ export function App() {
         : "All Departments"
     }));
   }, [filterOptions]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set("tab", activeTab);
+    params.set("payPeriod", filters.payPeriod);
+    params.set("company", filters.company);
+    params.set("payGroup", filters.payGroup);
+    params.set("department", filters.department);
+    if (filters.searchTerm) params.set("search", filters.searchTerm);
+    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+  }, [activeTab, filters]);
 
   function handleFilterChange(updates: Partial<DashboardFilters>) {
     setFilters((currentFilters) => ({ ...currentFilters, ...updates }));
@@ -197,7 +222,11 @@ export function App() {
   async function handleBackendLogout() {
     setIsAuthLoading(true);
     try {
-      await logoutFromBackend();
+      const session = await logoutFromBackend();
+      if (session.logoutUrl) {
+        window.location.assign(session.logoutUrl);
+        return;
+      }
       setAuthUser(null);
       setProxyDatasets({});
       setDataSourceMode("sample");
@@ -244,6 +273,7 @@ export function App() {
         isRefreshing={isRefreshing}
         onFilterChange={handleFilterChange}
         onRefresh={handleRefresh}
+        onCopyLink={() => navigator.clipboard.writeText(window.location.href)}
         roleTitle={activeRoleTitle}
       />
 
@@ -259,7 +289,9 @@ export function App() {
         <FilterSummary filters={filters} isRefreshing={isRefreshing} lastUpdated={lastUpdated} />
         <DashboardShell
           activeTab={activeTab}
+          canExport={dataSourceMode !== "proxy" || authUser?.canExport === true}
           data={activeData}
+          dataSourceMode={dataSourceMode}
           filters={filters}
           isRefreshing={isRefreshing}
           onClearFilters={handleClearFilters}
@@ -279,6 +311,7 @@ export function App() {
           <div className="grid gap-5 xl:grid-cols-2">
             <RoleLensPanel activeRole={activeRole} onRoleChange={setActiveRole} onTabChange={setActiveTab} />
             <AuthSecurityPanel
+              authMode={authMode}
               isLoading={isAuthLoading}
               message={authMessage}
               onLoadProxyData={handleLoadProxyData}

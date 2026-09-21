@@ -8,3 +8,4 @@ vite.config.d.ts
 npm-debug.log*
 playwright-report/
 test-results/
+.data/

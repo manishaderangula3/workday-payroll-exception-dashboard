@@ -122,8 +122,16 @@ export function getMissingTimeEntries(
 }
 
 export function getEffectiveMissingDates(entry: TimeEntry): string[] {
+  const submittedDates = new Set(entry.submittedWorkDates ?? []);
   const approvedLeaveDates = new Set(entry.approvedLeaveDates);
-  return entry.missingDates.filter((date) => !approvedLeaveDates.has(date));
+  const holidayDates = new Set(entry.holidayDates ?? []);
+  const candidateDates = entry.expectedWorkDates?.length
+    ? entry.expectedWorkDates.filter((date) => !submittedDates.has(date))
+    : entry.missingDates;
+
+  return [...new Set(candidateDates)].filter(
+    (date) => !approvedLeaveDates.has(date) && !holidayDates.has(date)
+  );
 }
 
 export function getDeductionExceptions(filters: DashboardFilters, data: DashboardData = sampleDashboardData) {

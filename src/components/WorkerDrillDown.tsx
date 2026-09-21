@@ -8,9 +8,12 @@ import {
   X
 } from "lucide-react";
 import { useState } from "react";
-import { downloadCsv, sanitizeFileName } from "../lib/csvExport";
+import { sanitizeFileName } from "../lib/csvExport";
+import { downloadXlsx } from "../lib/excelExport";
+import { getEffectiveMissingDates } from "../lib/calculations";
 import { formatCurrency, formatDateShort, formatHours } from "../lib/formatters";
 import { getWorkerSnapshot } from "../lib/workerSnapshot";
+import { createWorkdayInboxTask } from "../lib/backendApi";
 import type { DashboardData, DashboardFilters } from "../types/dashboard";
 import { StatusBadge } from "./StatusBadge";
 
@@ -18,8 +21,10 @@ interface WorkerDrillDownProps {
   data: DashboardData;
   employeeId: string;
   filters: DashboardFilters;
+  canExport: boolean;
+  canCreateWorkdayTask: boolean;
   isAcknowledged: boolean;
-  onAcknowledge: (employeeId: string) => void;
+  onAcknowledge: (employeeId: string) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -34,6 +39,8 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 
 export function WorkerDrillDown({
   employeeId,
+  canExport,
+  canCreateWorkdayTask,
   data,
   filters,
   isAcknowledged,
@@ -48,14 +55,16 @@ export function WorkerDrillDown({
   }
 
   const { deductions, payroll, taxes, timeEntries, worker } = snapshot;
-  const missingDates = timeEntries.flatMap((entry) => entry.missingDates);
+  const missingDates = [...new Set(timeEntries.flatMap(getEffectiveMissingDates))];
   const overtimeHours = timeEntries.reduce((total, entry) => total + entry.overtimeHours, 0);
   const deductionExceptions = deductions.filter((deduction) => deduction.exceptionType !== "None");
   const taxExceptions = taxes.filter((tax) => tax.exceptionType !== "None");
+  const timeEntryUrl = timeEntries.map((entry) => entry.timeEntryUrl).find((url) => url?.startsWith("https://"));
 
-  function handleExportSnapshot() {
-    downloadCsv(
-      `${sanitizeFileName(employeeId)}-worker-snapshot-${sanitizeFileName(filters.payPeriod)}.csv`,
+  async function handleExportSnapshot() {
+    await downloadXlsx(
+      `${sanitizeFileName(employeeId)}-worker-snapshot-${sanitizeFileName(filters.payPeriod)}.xlsx`,
+      "Worker Payroll Exception Snapshot",
       [
         {
           employeeId: worker.employeeId,
@@ -82,6 +91,24 @@ export function WorkerDrillDown({
       }
     );
     setLastAction("Worker snapshot exported for audit review.");
+  }
+
+  async function handleAcknowledge() {
+    try {
+      await onAcknowledge(employeeId);
+      setLastAction("Exception acknowledged and written to payroll close tracking.");
+    } catch (error) {
+      setLastAction(error instanceof Error ? error.message : "Unable to acknowledge this exception.");
+    }
+  }
+
+  async function handleCreateWorkdayTask() {
+    try {
+      await createWorkdayInboxTask(employeeId, filters.payPeriod);
+      setLastAction("Workday Inbox task created and added to the audit trail.");
+    } catch (error) {
+      setLastAction(error instanceof Error ? error.message : "Unable to create the Workday Inbox task.");
+    }
   }
 
   return (
@@ -173,33 +200,38 @@ export function WorkerDrillDown({
               <Mail className="h-4 w-4" aria-hidden="true" />
               Notify Manager
             </a>
+            {timeEntryUrl ? (
+              <a className="secondary-action" href={timeEntryUrl} rel="noreferrer" target="_blank">
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                Open Time Entry
+              </a>
+            ) : (
+              <button className="secondary-action" disabled title="No Workday time-entry URL was supplied" type="button">
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                Time Entry Link Unavailable
+              </button>
+            )}
+            {canCreateWorkdayTask ? (
+              <button className="secondary-action" onClick={() => void handleCreateWorkdayTask()} type="button">
+                <ClipboardList className="h-4 w-4" aria-hidden="true" />
+                Create Workday Inbox Task
+              </button>
+            ) : null}
             <button
               className="secondary-action"
-              onClick={() => setLastAction("Worker time entry review opened in simulated Workday task.")}
-              type="button"
-            >
-              <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              Open Time Entry
-            </button>
-            <button
-              className="secondary-action"
-              onClick={() => {
-                onAcknowledge(employeeId);
-                setLastAction("Exception acknowledged for payroll close tracking.");
-              }}
+              disabled={isAcknowledged}
+              onClick={() => void handleAcknowledge()}
               type="button"
             >
               <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
               Acknowledge Issue
             </button>
-            <button
-              className="secondary-action"
-              onClick={handleExportSnapshot}
-              type="button"
-            >
-              <Download className="h-4 w-4" aria-hidden="true" />
-              Export Snapshot
-            </button>
+            {canExport ? (
+              <button className="secondary-action" onClick={() => void handleExportSnapshot()} type="button">
+                <Download className="h-4 w-4" aria-hidden="true" />
+                Export Snapshot
+              </button>
+            ) : null}
           </div>
           {lastAction ? (
             <p className="mt-4 rounded-md bg-green-50 px-3 py-2 text-sm font-medium text-green-700">{lastAction}</p>

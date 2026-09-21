@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getUsers, loadWorkdayData, readJsonBody, resolveStaticFilePath, verifyPassword } from "./workdayProxy.js";
+import { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, verifyPassword } from "./workdayProxy.js";
 
 function requestFromText(text) {
   return {
@@ -79,14 +79,22 @@ describe("backend proxy hardening", () => {
     process.env.WORKDAY_WORKERS_URL = "https://workday.example/workers";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ data: [{ employeeId: "W-LIVE-1" }] })
+      json: async () => ({ data: [{
+        employeeId: "W-LIVE-1",
+        employeeName: "Live Worker",
+        department: "Operations",
+        manager: "Live Manager",
+        company: "Example Company",
+        payGroup: "US Weekly"
+      }] })
     }));
 
     try {
       const result = await loadWorkdayData();
 
       expect(result.source).toBe("workday");
-      expect(result.data.workers).toEqual([{ employeeId: "W-LIVE-1" }]);
+      expect(result.data.workers).toHaveLength(1);
+      expect(result.data.workers[0].employeeId).toBe("W-LIVE-1");
       expect(result.data.payrollResults).toEqual([]);
       expect(result.warnings).toContain("payrollResults URL is not configured; dataset returned empty.");
     } finally {
@@ -99,5 +107,30 @@ describe("backend proxy hardening", () => {
         }
       });
     }
+  });
+
+  it("maps an Azure Easy Auth principal to an application role", () => {
+    const principal = {
+      userDetails: "payroll.lead@example.com",
+      userRoles: ["Payroll.Manager"],
+      claims: [{ typ: "name", val: "Payroll Lead" }]
+    };
+    const encoded = Buffer.from(JSON.stringify(principal)).toString("base64");
+    expect(parseAzurePrincipal(encoded)).toEqual(principal);
+    expect(getAzureEasyAuthUser({ headers: { "x-ms-client-principal": encoded } })).toMatchObject({
+      username: "payroll.lead@example.com",
+      displayName: "Payroll Lead",
+      role: "payroll_manager"
+    });
+  });
+
+  it("fails closed when a department manager has no configured scope", () => {
+    const principal = {
+      userDetails: "unscoped.manager@example.com",
+      userRoles: ["Department.Manager"],
+      claims: []
+    };
+    const encoded = Buffer.from(JSON.stringify(principal)).toString("base64");
+    expect(getAzureEasyAuthUser({ headers: { "x-ms-client-principal": encoded } })).toBeNull();
   });
 });

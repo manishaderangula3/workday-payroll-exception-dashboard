@@ -171,6 +171,18 @@ describe("dashboard sample data calculations", () => {
     expect(getEffectiveMissingDates(entry)).toEqual(["2026-09-11"]);
   });
 
+  it("calculates missing dates from expected and submitted schedules", () => {
+    const entry = {
+      expectedWorkDates: ["2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10"],
+      submittedWorkDates: ["2026-09-08"],
+      approvedLeaveDates: ["2026-09-09"],
+      holidayDates: ["2026-09-07"],
+      missingDates: []
+    } as unknown as TimeEntry;
+
+    expect(getEffectiveMissingDates(entry)).toEqual(["2026-09-10"]);
+  });
+
   it("excludes exempt workers from overtime results", () => {
     const data: DashboardData = {
       ...sampleDashboardData,

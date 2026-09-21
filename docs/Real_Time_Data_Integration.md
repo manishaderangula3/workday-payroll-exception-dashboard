@@ -19,8 +19,8 @@ The upload feature is the safest first step before a Workday RaaS or API connect
 | Workers | Worker master data | `Employee ID`, `Employee Name`, `Department`, `Manager`, `Company`, `Pay Group` |
 | Payroll Results | Payroll cost, status, completion, and trend data | `Employee ID`, `Pay Period`, `Gross Pay`, `Net Pay`, `Payroll Status` |
 | Time Entries | Overtime and missing time exception data | `Employee ID`, `Pay Period`, `Week Ending Date`, `Scheduled Hours`, `Actual Hours Worked` |
-| Deduction Results | Deduction exception data | `Employee ID`, `Pay Period`, `Deduction Name`, `Expected Amount`, `Actual Amount`, `Exception Type` |
-| Tax Results | Tax exception data | `Employee ID`, `Pay Period`, `Tax Authority`, `Expected Tax`, `Actual Tax`, `Exception Type` |
+| Deduction Results | Deduction exception data | `Employee ID`, `Pay Period`, `Deduction Name`, `Expected Amount`, `Actual Amount` |
+| Tax Results | Tax exception data | `Employee ID`, `Pay Period`, `Tax Authority`, `Expected Tax`, `Actual Tax` |
 
 The parser accepts user-friendly Workday-style headers such as `Employee ID` and dashboard field names such as `employeeId`.
 
@@ -54,8 +54,8 @@ W-2001,2026-09-15 Semi-Monthly,2026-09-20,2026-09-18,PR-2026-09A,5000,3600,600,8
 ### Time Entries
 
 ```csv
-Employee ID,Pay Period,Week Ending Date,Scheduled Hours,Actual Hours Worked,Regular Hours,Overtime Hours,Double Time Hours,Submitted Days,Expected Days,Missing Dates,Approved Leave Dates,Last Submission Date,Time Entry Status
-W-2001,2026-09-15 Semi-Monthly,2026-09-15,40,46,40,6,0,5,5,,,2026-09-15,Approved
+Employee ID,Pay Period,Week Ending Date,Scheduled Hours,Actual Hours Worked,Expected Work Dates,Submitted Work Dates,Holiday Dates,Approved Leave Dates,Last Submission Date,Time Entry Status,Time Entry URL
+W-2001,2026-09-15 Semi-Monthly,2026-09-15,40,32,2026-09-08;2026-09-09;2026-09-10;2026-09-11;2026-09-12,2026-09-08;2026-09-09;2026-09-10;2026-09-11,,2026-09-12,2026-09-11,Submitted,https://example.workday.com/time-entry/W-2001
 ```
 
 Use semicolons for multiple dates:
@@ -68,15 +68,15 @@ Missing Dates
 ### Deduction Results
 
 ```csv
-Employee ID,Pay Period,Payroll Run,Deduction Name,Deduction Category,Expected Amount,Actual Amount,Arrears Balance,Exception Type
-W-2001,2026-09-15 Semi-Monthly,PR-2026-09A,Medical PPO Employee,Medical,238,0,238,Failed
+Employee ID,Pay Period,Payroll Run,Deduction Name,Deduction Category,Expected Amount,Expected Amount Frequency,Pay Periods Per Year,Actual Amount,Arrears Balance,Exception Type
+W-2001,2026-09-15 Semi-Monthly,PR-2026-09A,Medical PPO Employee,Medical,515.67,Monthly,26,0,238,
 ```
 
 ### Tax Results
 
 ```csv
-Employee ID,Pay Period,Tax Authority,Tax Form Status,Expected Tax,Actual Tax,Exception Type
-W-2001,2026-09-15 Semi-Monthly,Federal W-4,Missing,800,0,No Withholding
+Employee ID,Pay Period,Tax Authority,Tax Form Status,Expected Tax,Actual Tax,Work State,Tax State,Exception Type
+W-2001,2026-09-15 Semi-Monthly,Federal W-4,Expired,800,0,TX,CA,
 ```
 
 ## What Recalculates
@@ -89,7 +89,9 @@ W-2001,2026-09-15 Semi-Monthly,Federal W-4,Missing,800,0,No Withholding
 | Report tabs | Payroll cost, overtime, missing time, deductions, and tax rows rebuild from active data. |
 | Trend charts | Payroll KPI history and overtime matrix are derived from active uploaded payroll/time data. |
 | Worker drill-down | Selected worker detail joins active worker, payroll, time, deduction, and tax rows. |
-| CSV export | Exports the current filtered view from the active dataset. |
+| Excel export | Generates a formatted `.xlsx` workbook for the current filtered view, including report metadata, frozen headers, filters, column widths, and currency formats. |
+
+Missing-time dates are derived from expected work dates minus submitted dates, approved leave, and holidays when schedule-level fields are supplied. Deduction exceptions are derived after pay-frequency normalization when `Exception Type` is blank. Tax exceptions are derived from form status, withholding variance, and work-state/tax-state differences when `Exception Type` is blank. A supplied Workday classification remains authoritative.
 
 ## Workday RaaS/API Backend Proxy Integration
 
@@ -115,7 +117,7 @@ Implemented pattern:
 4. Start the backend with `npm run proxy` or `npm start`.
 5. Fetch Workday report output through `/api/workday/dashboard-data`.
 6. Apply signed-cookie authentication and backend RBAC before data reaches React.
-7. Normalize API/RaaS report output into the same dashboard data structure used by upload mode.
+7. Normalize and schema-validate API/RaaS rows, reject malformed rows, follow bounded same-origin pagination, and retry transient failures.
 8. Keep row-level security and real employee data controls inside Workday and the backend layer.
 
 See `docs/Backend_Proxy_Authentication.md` for endpoint, authentication, and role-security details.

@@ -116,6 +116,33 @@ describe("uploaded Workday-style CSV data", () => {
     expect(result.rows[0]).toMatchObject({ regularHours: 40, overtimeHours: 5 });
   });
 
+  it("derives missing work dates from schedules, submissions, leave, and holidays", () => {
+    const result = parseUploadedDataset(
+      "timeEntries",
+      [
+        "Employee ID,Pay Period,Week Ending Date,Scheduled Hours,Actual Hours Worked,Expected Work Dates,Submitted Work Dates,Approved Leave Dates,Holiday Dates",
+        "W-2001,2026-09-15 Semi-Monthly,2026-09-12,40,16,2026-09-07;2026-09-08;2026-09-09;2026-09-10;2026-09-11,2026-09-08;2026-09-09,2026-09-10,2026-09-07"
+      ].join("\n")
+    );
+
+    expect(result.messages).toHaveLength(0);
+    expect(result.rows[0]).toMatchObject({ expectedDays: 5, submittedDays: 2 });
+  });
+
+  it("derives deduction and tax exceptions when source classifications are omitted", () => {
+    const deduction = parseUploadedDataset(
+      "deductionResults",
+      "Employee ID,Pay Period,Deduction Name,Expected Amount,Actual Amount\nW-1,2026-09-15,Medical,100,0"
+    );
+    const tax = parseUploadedDataset(
+      "taxResults",
+      "Employee ID,Pay Period,Tax Authority,Expected Tax,Actual Tax,Tax Form Status\nW-1,2026-09-15,Federal,200,0,Expired"
+    );
+
+    expect(deduction.rows[0].exceptionType).toBe("Failed");
+    expect(tax.rows[0].exceptionType).toBe("Expired Tax Form");
+  });
+
   it("keeps completion at zero when payroll rows have no worker master data", () => {
     const payrollResults = parseUploadedDataset(
       "payrollResults",

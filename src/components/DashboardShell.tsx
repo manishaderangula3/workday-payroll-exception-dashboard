@@ -1,8 +1,9 @@
 import { dashboardTabs } from "../data/navigation";
 import { getExceptionBreakdown, getWorkers } from "../lib/calculations";
 import { getPayrollReadinessSummary } from "../lib/readiness";
-import type { DashboardData, DashboardFilters, DashboardThresholds } from "../types/dashboard";
-import { useState } from "react";
+import { acknowledgeException, getAcknowledgements } from "../lib/backendApi";
+import type { DashboardData, DashboardFilters, DashboardThresholds, DataSourceMode } from "../types/dashboard";
+import { useEffect, useState } from "react";
 import { EmptyState } from "./EmptyState";
 import { OverviewPreview } from "./OverviewPreview";
 import { ReadinessCenter } from "./ReadinessCenter";
@@ -17,11 +18,15 @@ interface DashboardShellProps {
   isRefreshing: boolean;
   onClearFilters: () => void;
   thresholds: DashboardThresholds;
+  canExport: boolean;
+  dataSourceMode: DataSourceMode;
 }
 
 export function DashboardShell({
   activeTab,
+  canExport,
   data,
+  dataSourceMode,
   filters,
   isRefreshing,
   onClearFilters,
@@ -45,6 +50,24 @@ export function DashboardShell({
   const tabs = dashboardTabs.map((tab) => ({ ...tab, badge: tabBadgeMap.get(tab.id) ?? tab.badge }));
   const currentTab = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
   const currentBadge = tabBadgeMap.get(activeTab) ?? 0;
+
+  useEffect(() => {
+    if (dataSourceMode !== "proxy") {
+      setAcknowledgedEmployeeIds(new Set());
+      return;
+    }
+
+    getAcknowledgements(filters.payPeriod)
+      .then((response) => setAcknowledgedEmployeeIds(new Set(response.employeeIds)))
+      .catch(() => setAcknowledgedEmployeeIds(new Set()));
+  }, [dataSourceMode, filters.payPeriod]);
+
+  async function handleAcknowledge(employeeId: string) {
+    if (dataSourceMode === "proxy") {
+      await acknowledgeException(employeeId, filters.payPeriod);
+    }
+    setAcknowledgedEmployeeIds((current) => new Set(current).add(employeeId));
+  }
 
   if (visibleWorkers.length === 0) {
     return (
@@ -96,7 +119,7 @@ export function DashboardShell({
         {activeTab === "overview" ? (
           <OverviewPreview data={data} filters={filters} onTabChange={onTabChange} thresholds={thresholds} />
         ) : activeTab === "readiness" ? (
-          <ReadinessCenter data={data} filters={filters} thresholds={thresholds} />
+          <ReadinessCenter canExport={canExport} data={data} filters={filters} thresholds={thresholds} />
         ) : currentBadge === 0 && activeTab !== "payroll-costs" && activeTab !== "documentation" ? (
           <EmptyState
             message={`No ${currentTab.label.toLowerCase()} exceptions match the current shared prompts.`}
@@ -106,6 +129,7 @@ export function DashboardShell({
           <ReportViews
             acknowledgedCount={acknowledgedCount}
             activeTab={activeTab}
+            canExport={canExport}
             data={data}
             filters={filters}
             onWorkerSelect={setSelectedEmployeeId}
@@ -115,12 +139,12 @@ export function DashboardShell({
         {selectedEmployeeId ? (
           <WorkerDrillDown
             employeeId={selectedEmployeeId}
+            canExport={canExport}
+            canCreateWorkdayTask={dataSourceMode === "proxy"}
             data={data}
             filters={filters}
             isAcknowledged={acknowledgedEmployeeIds.has(selectedEmployeeId)}
-            onAcknowledge={(employeeId) =>
-              setAcknowledgedEmployeeIds((current) => new Set(current).add(employeeId))
-            }
+            onAcknowledge={handleAcknowledge}
             onClose={() => setSelectedEmployeeId(null)}
           />
         ) : null}

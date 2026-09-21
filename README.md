@@ -1,6 +1,6 @@
 # Workday Payroll Exception & Reporting Dashboard
 
-![Status](https://img.shields.io/badge/status-portfolio_ready-brightgreen)
+![Status](https://img.shields.io/badge/status-production_gated-FF9800)
 ![Platform](https://img.shields.io/badge/platform-Workday-blue)
 ![Reports](https://img.shields.io/badge/reports-Advanced%20%7C%20Matrix%20%7C%20Composite-1976D2)
 ![Exports](https://img.shields.io/badge/export-Microsoft%20Excel-217346)
@@ -27,6 +27,8 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - TanStack Table for sortable report-style tables
 - Lucide React for dashboard actions and status icons
 - Vitest for calculation and UI behavior tests
+- Playwright for functional and visual browser regression tests
+- Node.js backend proxy for Workday connectivity, Entra identity mapping, RBAC, audit history, and delivery hooks
 
 ## Features
 
@@ -39,13 +41,16 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Single composite dashboard with shared prompts and drill-down capability
 - KPI cards for payroll cost, workers with exceptions, missing time, overtime, and payroll completion
 - Matrix view for overtime trends across departments
-- Excel export for Finance, audit, and offline analysis
+- Formatted `.xlsx` export for Finance, audit, and offline analysis
 - Security, UAT, performance, and defect documentation for production readiness
 - Interactive dashboard shell with role-based presentation lens for payroll, HRIS, reporting, systems, and consulting roles
 - Dynamic KPI threshold controls for live presentation scenarios and configurable alert logic
 - CSV upload mode for replacing sample data with Workday-style report exports and recalculating dashboard results
-- Production hardening for upload validation, CSV export safety, runtime error handling, and readiness tracking
-- Backend Workday RaaS/API proxy with signed session authentication and role-scoped data delivery
+- Workday response schema validation, normalization, retry, and bounded same-origin pagination
+- Microsoft Entra Easy Auth integration path with app-role mapping and backend row security
+- Persistent acknowledgement/action audit trail, real Workday time-entry links, and configurable Inbox task creation
+- Saved report links and scheduled Logic App/Power Automate delivery hooks
+- Production evidence gate for tenant validation, security, reconciliation, performance, and UAT approval
 
 ## Interactive Dashboard App
 
@@ -109,7 +114,7 @@ Day 7 implementation adds:
 - Worker drill-down panel from any report row
 - Joined worker snapshot showing payroll, time, deduction, and tax context
 - Action workflow buttons for manager notification, time entry review, issue acknowledgement, and worker snapshot export
-- CSV export for each current filtered report view with audit metadata
+- Formatted Excel export for each current filtered report view with audit metadata
 - Test coverage for CSV generation and worker snapshot joins
 
 Day 8 implementation adds:
@@ -140,23 +145,29 @@ Real-time data extension adds:
 - Validation messages for missing columns and invalid rows
 - Active data bundle used by filters, KPI cards, charts, report tabs, exports, and worker drill-downs
 - Derived KPI history and overtime trend rows from uploaded payroll/time data
-- Future Workday RaaS/API integration guide with secure backend proxy recommendation
+- Role-scoped Workday RaaS/API backend proxy integration
 
 Production hardening adds:
 
 - Upload file validation for CSV type, empty files, and maximum file size
-- Spreadsheet formula-injection mitigation for CSV exports
+- True `.xlsx` workbook generation with lazy-loaded export code
 - Runtime error boundary with reset path
 - Production readiness checklist separating portfolio readiness from Workday tenant go-live tasks
 
 Backend proxy and authentication adds:
 
 - Node backend proxy for Workday RaaS/API report endpoints
-- Signed HTTP-only session cookie authentication
+- Microsoft Entra Easy Auth principal and app-role mapping for production
+- Signed HTTP-only local sessions for development only
 - Demo users for local role-security testing
 - Backend role-based filtering by department, company, and pay group
 - Worker-detail masking for finance/read-only style roles
 - Frontend Backend Proxy data mode that loads scoped data through `/api`
+- Export authorization enforcement, persistent audit APIs, Workday task action hook, and scheduled delivery webhook
+
+## Production Status
+
+The application code, automated tests, build, deployment container, and production control adapters are implemented. A live Workday tenant is still an external dependency: release is intentionally blocked until tenant report validation, role/security testing, payroll-to-GL reconciliation, production-volume performance testing, and business UAT are executed and approved. Record that evidence in `testing/production-evidence.json`, then run `npm run validate:production`.
 
 Hosted deployment and visual QA adds:
 

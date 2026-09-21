@@ -5,6 +5,9 @@ import { extname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { demoDashboardData } from "./demoData.js";
 import { applyRoleSecurity, publicUser } from "./rbac.js";
+import { fetchWorkdayPages, normalizeWorkdayDataset } from "./workdayData.js";
+import { appendAuditEvent, readAuditEvents } from "./auditStore.js";
+import { sendScheduledDelivery, startScheduledDelivery } from "./scheduledDelivery.js";
 
 loadDotEnv();
 
@@ -23,9 +26,14 @@ const workdayFetchTimeoutMs =
 const maxFailedLoginAttempts = 5;
 const loginThrottleWindowMs = 15 * 60 * 1000;
 const failedLoginAttempts = new Map();
+const authMode = process.env.AUTH_MODE ?? "local";
 
 if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET is required when NODE_ENV=production.");
+}
+
+if (process.env.NODE_ENV === "production" && authMode === "local" && process.env.ALLOW_LOCAL_AUTH_IN_PRODUCTION !== "true") {
+  throw new Error("Production requires AUTH_MODE=azure_easy_auth unless ALLOW_LOCAL_AUTH_IN_PRODUCTION=true is explicitly set.");
 }
 
 const demoUsers = [
@@ -87,10 +95,21 @@ function jsonResponse(response, statusCode, payload, headers = {}) {
   response.writeHead(statusCode, {
     "Cache-Control": "no-store",
     "Content-Type": "application/json; charset=utf-8",
-    "X-Content-Type-Options": "nosniff",
+    ...securityHeaders(),
     ...headers
   });
   response.end(JSON.stringify(payload));
+}
+
+function securityHeaders() {
+  return {
+    "Content-Security-Policy": "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Permissions-Policy": "camera=(), geolocation=(), microphone=()",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    ...(process.env.NODE_ENV === "production" ? { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } : {})
+  };
 }
 
 function notFound(response) {
@@ -107,6 +126,10 @@ function payloadTooLarge(response) {
 
 function unauthorized(response, error = "Authentication required") {
   jsonResponse(response, 401, { error });
+}
+
+function forbidden(response, error = "You are not authorized to perform this action") {
+  jsonResponse(response, 403, { error });
 }
 
 function tooManyRequests(response) {
@@ -280,6 +303,10 @@ function clearFailedLogin(key) {
 }
 
 function findAuthenticatedUser(request) {
+  if (authMode === "azure_easy_auth") {
+    return getAzureEasyAuthUser(request);
+  }
+
   const session = parseSession(request);
 
   if (!session) {
@@ -287,6 +314,59 @@ function findAuthenticatedUser(request) {
   }
 
   return getUsers().find((user) => user.username === session.username) ?? null;
+}
+
+function parseAzurePrincipal(headerValue) {
+  if (!headerValue) return null;
+
+  try {
+    const encoded = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+    const principal = JSON.parse(Buffer.from(encoded, "base64").toString("utf8"));
+    return principal && typeof principal === "object" ? principal : null;
+  } catch {
+    return null;
+  }
+}
+
+function getAzureEasyAuthUser(request) {
+  const principal = parseAzurePrincipal(request.headers["x-ms-client-principal"]);
+  if (!principal) return null;
+
+  const claims = Array.isArray(principal.claims) ? principal.claims : [];
+  const claim = (suffix) => claims.find((item) => String(item.typ ?? "").toLowerCase().endsWith(suffix))?.val;
+  const username = String(principal.userDetails ?? claim("preferred_username") ?? claim("email") ?? principal.userId ?? "");
+  const displayName = String(claim("name") ?? username);
+  const roles = [
+    ...(Array.isArray(principal.userRoles) ? principal.userRoles : []),
+    ...claims.filter((item) => String(item.typ ?? "").toLowerCase().endsWith("/role")).map((item) => item.val)
+  ].map(String);
+  const defaultMappings = {
+    "Payroll.Admin": "payroll_admin",
+    "Payroll.Manager": "payroll_manager",
+    "HRIS.Analyst": "hris_analyst",
+    "Finance.Analyst": "finance_analyst",
+    "Department.Manager": "department_manager",
+    "Payroll.Auditor": "read_only_auditor"
+  };
+  const mappings = process.env.ENTRA_ROLE_MAPPINGS_JSON
+    ? JSON.parse(process.env.ENTRA_ROLE_MAPPINGS_JSON)
+    : defaultMappings;
+  const mappedRole = roles.map((role) => mappings[role]).find(Boolean);
+  if (!username || !mappedRole) return null;
+
+  const scopes = process.env.ENTRA_USER_SCOPES_JSON ? JSON.parse(process.env.ENTRA_USER_SCOPES_JSON) : {};
+  const userScope = scopes[username] ?? {};
+  if (mappedRole === "department_manager" && (!Array.isArray(userScope.allowedDepartments) || userScope.allowedDepartments.length === 0)) {
+    return null;
+  }
+  return {
+    username,
+    displayName,
+    role: mappedRole,
+    allowedDepartments: userScope.allowedDepartments ?? [],
+    allowedCompanies: userScope.allowedCompanies ?? [],
+    allowedPayGroups: userScope.allowedPayGroups ?? []
+  };
 }
 
 async function readJsonBody(request) {
@@ -339,37 +419,15 @@ function datasetUrls() {
 }
 
 async function fetchWorkdayDataset(url) {
-  const response = await fetch(url, {
+  return fetchWorkdayPages(url, {
     headers: {
       Accept: "application/json",
       ...authHeaders()
     },
-    signal: AbortSignal.timeout(workdayFetchTimeoutMs)
+    maxPages: Number(process.env.WORKDAY_MAX_PAGES ?? 25),
+    retries: Number(process.env.WORKDAY_FETCH_RETRIES ?? 3),
+    timeoutMs: workdayFetchTimeoutMs
   });
-
-  if (!response.ok) {
-    throw new Error(`Workday request failed with status ${response.status}`);
-  }
-
-  const payload = await response.json();
-
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-
-  if (Array.isArray(payload.Report_Entry)) {
-    return payload.Report_Entry;
-  }
-
-  if (Array.isArray(payload.reportEntries)) {
-    return payload.reportEntries;
-  }
-
-  if (Array.isArray(payload.data)) {
-    return payload.data;
-  }
-
-  return [];
 }
 
 async function loadWorkdayData() {
@@ -397,17 +455,17 @@ async function loadWorkdayData() {
     .filter(([, url]) => !url)
     .forEach(([dataset]) => warnings.push(`${dataset} URL is not configured; dataset returned empty.`));
 
-  for (const [dataset, url] of configuredEntries) {
+  await Promise.all(configuredEntries.map(async ([dataset, url]) => {
     try {
-      data[dataset] = await fetchWorkdayDataset(url);
-
-      if (data[dataset].length === 0) {
-        warnings.push(`${dataset} returned no rows.`);
-      }
+      const fetchedRows = await fetchWorkdayDataset(url);
+      const normalized = normalizeWorkdayDataset(dataset, fetchedRows);
+      data[dataset] = normalized.rows;
+      warnings.push(...normalized.warnings);
+      if (data[dataset].length === 0) warnings.push(`${dataset} returned no valid rows.`);
     } catch (error) {
       warnings.push(`${dataset} failed: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
-  }
+  }));
 
   return {
     data,
@@ -420,6 +478,7 @@ async function handleApi(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/health") {
     jsonResponse(response, 200, {
       ok: true,
+      authMode,
       workdayConfigured: Object.values(datasetUrls()).some(Boolean)
     });
     return;
@@ -429,12 +488,17 @@ async function handleApi(request, response, url) {
     const user = findAuthenticatedUser(request);
     jsonResponse(response, 200, {
       authenticated: Boolean(user),
+      authMode,
       user: user ? publicUser(user) : null
     });
     return;
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/login") {
+    if (authMode !== "local") {
+      jsonResponse(response, 409, { error: "Authentication is managed by Microsoft Entra ID.", loginUrl: "/.auth/login/aad?post_login_redirect_uri=/" });
+      return;
+    }
     const body = await readJsonBody(request);
     const username = String(body.username ?? "");
     const throttleKey = loginThrottleKey(request, username);
@@ -468,11 +532,16 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/logout") {
+    if (authMode === "azure_easy_auth") {
+      jsonResponse(response, 200, { authenticated: false, authMode, logoutUrl: "/.auth/logout?post_logout_redirect_uri=/", user: null });
+      return;
+    }
     jsonResponse(
       response,
       200,
       {
         authenticated: false,
+        authMode,
         user: null
       },
       {
@@ -502,6 +571,87 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/acknowledgements") {
+    const user = findAuthenticatedUser(request);
+    if (!user) return unauthorized(response);
+    const { data } = await loadWorkdayData();
+    const scopedData = applyRoleSecurity(data, user);
+    const visibleWorkerIds = new Set(scopedData.workers.map((worker) => worker.employeeId));
+    const payPeriod = url.searchParams.get("payPeriod") ?? "";
+    const events = (await readAuditEvents()).filter(
+      (event) => event.type === "exception_acknowledged" && event.payPeriod === payPeriod && visibleWorkerIds.has(event.employeeId)
+    );
+    jsonResponse(response, 200, { employeeIds: [...new Set(events.map((event) => event.employeeId))] });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/acknowledgements") {
+    const user = findAuthenticatedUser(request);
+    if (!user) return unauthorized(response);
+    const body = await readJsonBody(request);
+    const employeeId = String(body.employeeId ?? "").trim();
+    const payPeriod = String(body.payPeriod ?? "").trim();
+    if (!employeeId || !payPeriod) return badRequest(response, "employeeId and payPeriod are required");
+    const { data } = await loadWorkdayData();
+    const scopedData = applyRoleSecurity(data, user);
+    if (!scopedData.workers.some((worker) => worker.employeeId === employeeId)) return forbidden(response);
+    const event = await appendAuditEvent({
+      type: "exception_acknowledged",
+      employeeId,
+      payPeriod,
+      actor: user.username,
+      actorRole: user.role
+    });
+    jsonResponse(response, 201, { event });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/actions/workday-inbox") {
+    const user = findAuthenticatedUser(request);
+    if (!user) return unauthorized(response);
+    const endpoint = process.env.WORKDAY_INBOX_TASK_URL;
+    if (!endpoint) return jsonResponse(response, 503, { error: "WORKDAY_INBOX_TASK_URL is not configured" });
+    const body = await readJsonBody(request);
+    const employeeId = String(body.employeeId ?? "").trim();
+    const payPeriod = String(body.payPeriod ?? "").trim();
+    const { data } = await loadWorkdayData();
+    const scopedData = applyRoleSecurity(data, user);
+    if (!scopedData.workers.some((worker) => worker.employeeId === employeeId)) return forbidden(response);
+    const workdayResponse = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ employeeId, payPeriod, requestedBy: user.username }),
+      signal: AbortSignal.timeout(workdayFetchTimeoutMs)
+    });
+    if (!workdayResponse.ok) return jsonResponse(response, 502, { error: `Workday task request failed with status ${workdayResponse.status}` });
+    const event = await appendAuditEvent({ type: "workday_inbox_task_created", employeeId, payPeriod, actor: user.username, actorRole: user.role });
+    jsonResponse(response, 201, { event });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/audit-events") {
+    const user = findAuthenticatedUser(request);
+    if (!user) return unauthorized(response);
+    if (!["payroll_admin", "payroll_manager", "read_only_auditor"].includes(user.role)) return forbidden(response);
+    const { data } = await loadWorkdayData();
+    const scopedData = applyRoleSecurity(data, user);
+    const visibleWorkerIds = new Set(scopedData.workers.map((worker) => worker.employeeId));
+    const events = (await readAuditEvents()).filter((event) => !event.employeeId || visibleWorkerIds.has(event.employeeId));
+    jsonResponse(response, 200, { events });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/delivery/trigger") {
+    const user = findAuthenticatedUser(request);
+    if (!user) return unauthorized(response);
+    if (!["payroll_admin", "payroll_manager"].includes(user.role)) return forbidden(response);
+    const { data } = await loadWorkdayData();
+    const payload = await sendScheduledDelivery(data);
+    await appendAuditEvent({ type: "scheduled_report_delivered", actor: user.username, actorRole: user.role });
+    jsonResponse(response, 200, { delivered: true, payload });
+    return;
+  }
+
   notFound(response);
 }
 
@@ -522,6 +672,10 @@ function contentType(filePath) {
 
   if (extension === ".svg") {
     return "image/svg+xml";
+  }
+
+  if (extension === ".md") {
+    return "text/markdown; charset=utf-8";
   }
 
   return "application/octet-stream";
@@ -564,7 +718,7 @@ function serveStatic(response, url) {
 
     response.writeHead(200, {
       "Content-Type": "text/html; charset=utf-8",
-      "X-Content-Type-Options": "nosniff"
+      ...securityHeaders()
     });
     createReadStream(fallbackPath).pipe(response);
     return;
@@ -572,7 +726,7 @@ function serveStatic(response, url) {
 
   response.writeHead(200, {
     "Content-Type": contentType(filePath),
-    "X-Content-Type-Options": "nosniff"
+    ...securityHeaders()
   });
   createReadStream(filePath).pipe(response);
 }
@@ -607,8 +761,11 @@ const server = createServer(async (request, response) => {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   server.listen(port, host, () => {
+    startScheduledDelivery(loadWorkdayData, () =>
+      appendAuditEvent({ type: "scheduled_report_delivered", actor: "scheduler", actorRole: "system" })
+    );
     console.log(`Workday dashboard backend proxy running at http://${host}:${port}`);
   });
 }
 
-export { getUsers, loadWorkdayData, readJsonBody, resolveStaticFilePath, server, verifyPassword };
+export { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, server, verifyPassword };

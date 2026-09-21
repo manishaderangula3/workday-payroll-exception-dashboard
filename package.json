@@ -7,14 +7,17 @@
     "dev": "vite",
     "proxy": "node server/workdayProxy.js",
     "start": "node server/workdayProxy.js",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build --configLoader runner && node scripts/copyReportDocs.mjs",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run --configLoader runner",
     "test:visual": "playwright test",
-    "test:visual:update": "playwright test --update-snapshots"
+    "test:visual:update": "playwright test --update-snapshots",
+    "test:functional": "playwright test --grep @functional --project=desktop-chromium",
+    "validate:production": "node scripts/validateProductionReadiness.mjs"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
+    "exceljs": "^4.4.0",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -31,5 +34,10 @@
     "typescript": "^5.6.3",
     "vite": "^6.0.1",
     "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
   }
 }

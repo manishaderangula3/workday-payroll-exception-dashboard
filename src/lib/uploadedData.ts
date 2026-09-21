@@ -33,8 +33,8 @@ const datasetRequiredFields: Record<UploadDatasetKey, string[]> = {
   workers: ["employeeId", "employeeName", "department", "manager", "company", "payGroup"],
   payrollResults: ["employeeId", "payPeriod", "grossPay", "netPay", "payrollStatus"],
   timeEntries: ["employeeId", "payPeriod", "weekEndingDate", "scheduledHours", "actualHoursWorked"],
-  deductionResults: ["employeeId", "payPeriod", "deductionName", "expectedAmount", "actualAmount", "exceptionType"],
-  taxResults: ["employeeId", "payPeriod", "taxAuthority", "expectedTax", "actualTax", "exceptionType"]
+  deductionResults: ["employeeId", "payPeriod", "deductionName", "expectedAmount", "actualAmount"],
+  taxResults: ["employeeId", "payPeriod", "taxAuthority", "expectedTax", "actualTax"]
 };
 
 const datasetNumericFields: Record<UploadDatasetKey, string[]> = {
@@ -56,7 +56,7 @@ const datasetNumericFields: Record<UploadDatasetKey, string[]> = {
     "submittedDays",
     "expectedDays"
   ],
-  deductionResults: ["expectedAmount", "actualAmount", "arrearsBalance"],
+  deductionResults: ["expectedAmount", "actualAmount", "arrearsBalance", "payPeriodsPerYear"],
   taxResults: ["expectedTax", "actualTax"]
 };
 
@@ -95,19 +95,27 @@ const aliases: Record<string, string[]> = {
   submittedDays: ["submitteddays", "submitted days"],
   expectedDays: ["expecteddays", "expected days"],
   missingDates: ["missingdates", "missing dates"],
+  expectedWorkDates: ["expectedworkdates", "expected work dates", "scheduled dates"],
+  submittedWorkDates: ["submittedworkdates", "submitted work dates", "time entry dates"],
+  holidayDates: ["holidaydates", "holiday dates", "company holidays"],
   approvedLeaveDates: ["approvedleavedates", "approved leave dates", "leave dates"],
   lastSubmissionDate: ["lastsubmissiondate", "last submission date"],
   timeEntryStatus: ["timeentrystatus", "time entry status"],
+  timeEntryUrl: ["timeentryurl", "time entry url", "workday time entry url"],
   deductionName: ["deductionname", "deduction name"],
   deductionCategory: ["deductioncategory", "deduction category", "category"],
   expectedAmount: ["expectedamount", "expected amount"],
+  expectedAmountFrequency: ["expectedamountfrequency", "expected amount frequency", "deduction frequency"],
+  payPeriodsPerYear: ["payperiodsperyear", "pay periods per year"],
   actualAmount: ["actualamount", "actual amount", "actual amount taken"],
   arrearsBalance: ["arrearsbalance", "arrears balance"],
   exceptionType: ["exceptiontype", "exception type", "exception"],
   taxAuthority: ["taxauthority", "tax authority"],
   taxFormStatus: ["taxformstatus", "tax form status", "form status"],
   expectedTax: ["expectedtax", "expected tax"],
-  actualTax: ["actualtax", "actual tax"]
+  actualTax: ["actualtax", "actual tax"],
+  workState: ["workstate", "work state", "resident work state"],
+  taxState: ["taxstate", "tax state", "withholding state"]
 };
 
 function normalizeHeader(value: string): string {
@@ -279,6 +287,7 @@ function getInvalidChoiceMessages(dataset: UploadDatasetKey, records: CsvRecord[
     },
     deductionResults: {
       deductionCategory: ["medical", "dental", "401k", "garnishment", "hsa", "vision"],
+      expectedAmountFrequency: ["per pay period", "monthly", "annual"],
       exceptionType: ["none", "failed", "fail", "over deducted", "over", "under deducted", "under", "arrears", "arrear"]
     },
     taxResults: {
@@ -343,6 +352,63 @@ function toList(value: string): string[] {
     .filter(Boolean);
 }
 
+function normalizeDeductionAmount(amount: number, frequency: string, payPeriodsPerYear: number): number {
+  const normalizedFrequency = normalizeText(frequency);
+  const periods = payPeriodsPerYear > 0 ? payPeriodsPerYear : 26;
+
+  if (normalizedFrequency === "monthly") {
+    return (amount * 12) / periods;
+  }
+
+  if (normalizedFrequency === "annual") {
+    return amount / periods;
+  }
+
+  return amount;
+}
+
+export function deriveDeductionException(
+  expectedAmount: number,
+  actualAmount: number,
+  arrearsBalance: number,
+  sourceException = ""
+): DeductionExceptionType {
+  if (sourceException.trim()) {
+    return toDeductionException(sourceException);
+  }
+
+  if (arrearsBalance > 0) return "Arrears";
+  if (expectedAmount > 0 && actualAmount === 0) return "Failed";
+
+  const tolerance = Math.max(0.01, Math.abs(expectedAmount) * 0.01);
+  if (actualAmount - expectedAmount > tolerance) return "Over-Deducted";
+  if (expectedAmount - actualAmount > tolerance) return "Under-Deducted";
+  return "None";
+}
+
+export function deriveTaxException(
+  taxFormStatus: TaxResult["taxFormStatus"],
+  expectedTax: number,
+  actualTax: number,
+  workState = "",
+  taxState = "",
+  sourceException = ""
+): TaxExceptionType {
+  if (sourceException.trim()) {
+    return toTaxException(sourceException);
+  }
+
+  if (taxFormStatus === "Missing") return "Missing Tax Election";
+  if (taxFormStatus === "Expired") return "Expired Tax Form";
+  if (workState && taxState && normalizeText(workState) !== normalizeText(taxState)) return "Multi-State Issue";
+  if (expectedTax > 0 && actualTax === 0) return "No Withholding";
+
+  const tolerance = Math.max(1, Math.abs(expectedTax) * 0.05);
+  if (actualTax - expectedTax > tolerance) return "Excess Withholding";
+  if (expectedTax - actualTax > tolerance) return "Under Withholding";
+  return "None";
+}
+
 function isValidIsoDate(value: string): boolean {
   if (!value) {
     return true;
@@ -380,6 +446,39 @@ function toWorkerType(value: string): WorkerType {
 
 function toExemptStatus(value: string): ExemptStatus {
   return normalizeText(value).includes("non") ? "Non-Exempt" : "Exempt";
+}
+
+function toTimeEntryStatus(value: string): TimeEntry["timeEntryStatus"] {
+  const normalized = normalizeText(value);
+  if (normalized === "draft") return "Draft";
+  if (normalized === "approved") return "Approved";
+  if (normalized === "not submitted") return "Not Submitted";
+  return "Submitted";
+}
+
+function toDeductionCategory(value: string): DeductionResult["deductionCategory"] {
+  const normalized = normalizeText(value);
+  if (normalized === "dental") return "Dental";
+  if (normalized === "401k") return "401k";
+  if (normalized === "garnishment") return "Garnishment";
+  if (normalized === "hsa") return "HSA";
+  if (normalized === "vision") return "Vision";
+  return "Medical";
+}
+
+function toDeductionFrequency(value: string): NonNullable<DeductionResult["expectedAmountFrequency"]> {
+  const normalized = normalizeText(value);
+  if (normalized === "monthly") return "Monthly";
+  if (normalized === "annual") return "Annual";
+  return "Per Pay Period";
+}
+
+function toTaxFormStatus(value: string): TaxResult["taxFormStatus"] {
+  const normalized = normalizeText(value);
+  if (normalized === "missing") return "Missing";
+  if (normalized === "expired") return "Expired";
+  if (normalized === "pending review") return "Pending Review";
+  return "Current";
 }
 
 function toDeductionException(value: string): DeductionExceptionType {
@@ -476,6 +575,9 @@ function parseTimeEntries(records: CsvRecord[]): TimeEntry[] {
     const regularHours = getValue(record, "regularHours");
     const overtimeHours = getValue(record, "overtimeHours");
 
+    const expectedWorkDates = toList(getValue(record, "expectedWorkDates"));
+    const submittedWorkDates = toList(getValue(record, "submittedWorkDates"));
+
     return {
       employeeId: getValue(record, "employeeId"),
       payPeriod: getValue(record, "payPeriod"),
@@ -485,40 +587,66 @@ function parseTimeEntries(records: CsvRecord[]): TimeEntry[] {
       regularHours: regularHours ? toNumber(regularHours) : Math.min(actualHoursWorked, 40),
       overtimeHours: overtimeHours ? toNumber(overtimeHours) : Math.max(actualHoursWorked - 40, 0),
       doubleTimeHours: toNumber(getValue(record, "doubleTimeHours")),
-      submittedDays: toNumber(getValue(record, "submittedDays")),
-      expectedDays: toNumber(getValue(record, "expectedDays")),
+      submittedDays: getValue(record, "submittedDays") ? toNumber(getValue(record, "submittedDays")) : submittedWorkDates.length,
+      expectedDays: getValue(record, "expectedDays") ? toNumber(getValue(record, "expectedDays")) : expectedWorkDates.length,
       missingDates: toList(getValue(record, "missingDates")),
+      expectedWorkDates,
+      submittedWorkDates,
+      holidayDates: toList(getValue(record, "holidayDates")),
       approvedLeaveDates: toList(getValue(record, "approvedLeaveDates")),
       lastSubmissionDate: getValue(record, "lastSubmissionDate") || undefined,
-      timeEntryStatus: (getValue(record, "timeEntryStatus") as TimeEntry["timeEntryStatus"]) || "Submitted"
+      timeEntryUrl: getValue(record, "timeEntryUrl") || undefined,
+      timeEntryStatus: toTimeEntryStatus(getValue(record, "timeEntryStatus"))
     };
   });
 }
 
 function parseDeductionResults(records: CsvRecord[]): DeductionResult[] {
-  return records.map((record) => ({
-    employeeId: getValue(record, "employeeId"),
-    payPeriod: getValue(record, "payPeriod"),
-    payrollRun: getValue(record, "payrollRun") || "Uploaded Payroll Run",
-    deductionName: getValue(record, "deductionName"),
-    deductionCategory: (getValue(record, "deductionCategory") as DeductionResult["deductionCategory"]) || "Medical",
-    expectedAmount: toNumber(getValue(record, "expectedAmount")),
-    actualAmount: toNumber(getValue(record, "actualAmount")),
-    arrearsBalance: toNumber(getValue(record, "arrearsBalance")),
-    exceptionType: toDeductionException(getValue(record, "exceptionType"))
-  }));
+  return records.map((record) => {
+    const sourceExpectedAmount = toNumber(getValue(record, "expectedAmount"));
+    const frequency = toDeductionFrequency(getValue(record, "expectedAmountFrequency"));
+    const payPeriodsPerYear = toNumber(getValue(record, "payPeriodsPerYear"), 26);
+    const expectedAmount = normalizeDeductionAmount(sourceExpectedAmount, frequency, payPeriodsPerYear);
+    const actualAmount = toNumber(getValue(record, "actualAmount"));
+    const arrearsBalance = toNumber(getValue(record, "arrearsBalance"));
+
+    return {
+      employeeId: getValue(record, "employeeId"),
+      payPeriod: getValue(record, "payPeriod"),
+      payrollRun: getValue(record, "payrollRun") || "Uploaded Payroll Run",
+      deductionName: getValue(record, "deductionName"),
+      deductionCategory: toDeductionCategory(getValue(record, "deductionCategory")),
+      expectedAmount,
+      sourceExpectedAmount,
+      expectedAmountFrequency: frequency,
+      payPeriodsPerYear,
+      actualAmount,
+      arrearsBalance,
+      exceptionType: deriveDeductionException(expectedAmount, actualAmount, arrearsBalance, getValue(record, "exceptionType"))
+    };
+  });
 }
 
 function parseTaxResults(records: CsvRecord[]): TaxResult[] {
-  return records.map((record) => ({
-    employeeId: getValue(record, "employeeId"),
-    payPeriod: getValue(record, "payPeriod"),
-    taxAuthority: getValue(record, "taxAuthority"),
-    taxFormStatus: (getValue(record, "taxFormStatus") as TaxResult["taxFormStatus"]) || "Current",
-    expectedTax: toNumber(getValue(record, "expectedTax")),
-    actualTax: toNumber(getValue(record, "actualTax")),
-    exceptionType: toTaxException(getValue(record, "exceptionType"))
-  }));
+  return records.map((record) => {
+    const taxFormStatus = toTaxFormStatus(getValue(record, "taxFormStatus"));
+    const expectedTax = toNumber(getValue(record, "expectedTax"));
+    const actualTax = toNumber(getValue(record, "actualTax"));
+    const workState = getValue(record, "workState");
+    const taxState = getValue(record, "taxState");
+
+    return {
+      employeeId: getValue(record, "employeeId"),
+      payPeriod: getValue(record, "payPeriod"),
+      taxAuthority: getValue(record, "taxAuthority"),
+      taxFormStatus,
+      expectedTax,
+      actualTax,
+      workState: workState || undefined,
+      taxState: taxState || undefined,
+      exceptionType: deriveTaxException(taxFormStatus, expectedTax, actualTax, workState, taxState, getValue(record, "exceptionType"))
+    };
+  });
 }
 
 function getInvalidDateMessages(dataset: UploadDatasetKey, rows: DashboardData[UploadDatasetKey]): UploadValidationMessage[] {
@@ -547,6 +675,9 @@ function getInvalidDateMessages(dataset: UploadDatasetKey, rows: DashboardData[U
       const entry = row as TimeEntry;
       addDateMessage("weekEndingDate", entry.weekEndingDate);
       entry.missingDates.forEach((date) => addDateMessage("missingDates", date));
+      entry.expectedWorkDates?.forEach((date) => addDateMessage("expectedWorkDates", date));
+      entry.submittedWorkDates?.forEach((date) => addDateMessage("submittedWorkDates", date));
+      entry.holidayDates?.forEach((date) => addDateMessage("holidayDates", date));
       entry.approvedLeaveDates.forEach((date) => addDateMessage("approvedLeaveDates", date));
       addDateMessage("lastSubmissionDate", entry.lastSubmissionDate ?? "");
     }

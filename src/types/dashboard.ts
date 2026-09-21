@@ -116,8 +116,12 @@ export interface TimeEntry {
   submittedDays: number;
   expectedDays: number;
   missingDates: string[];
+  expectedWorkDates?: string[];
+  submittedWorkDates?: string[];
+  holidayDates?: string[];
   approvedLeaveDates: string[];
   lastSubmissionDate?: string;
+  timeEntryUrl?: string;
   timeEntryStatus: "Draft" | "Submitted" | "Approved" | "Not Submitted";
 }
 
@@ -128,6 +132,9 @@ export interface DeductionResult {
   deductionName: string;
   deductionCategory: "Medical" | "Dental" | "401k" | "Garnishment" | "HSA" | "Vision";
   expectedAmount: number;
+  sourceExpectedAmount?: number;
+  expectedAmountFrequency?: "Per Pay Period" | "Monthly" | "Annual";
+  payPeriodsPerYear?: number;
   actualAmount: number;
   arrearsBalance: number;
   exceptionType: DeductionExceptionType;
@@ -140,6 +147,8 @@ export interface TaxResult {
   taxFormStatus: "Current" | "Missing" | "Expired" | "Pending Review";
   expectedTax: number;
   actualTax: number;
+  workState?: string;
+  taxState?: string;
   exceptionType: TaxExceptionType;
 }
 

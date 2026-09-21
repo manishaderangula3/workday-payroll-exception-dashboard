@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, ShieldAlert } from "lucide-react";
-import { downloadCsv, sanitizeFileName, type CsvRow } from "../lib/csvExport";
+import { sanitizeFileName, type CsvRow } from "../lib/csvExport";
+import { downloadXlsx } from "../lib/excelExport";
 import { getOverviewMetrics } from "../lib/calculations";
 import { formatDateShort, formatDeadlineCountdown, formatPercent } from "../lib/formatters";
 import { getPayrollReadinessSummary } from "../lib/readiness";
@@ -9,6 +10,7 @@ interface ReadinessCenterProps {
   data: DashboardData;
   filters: DashboardFilters;
   thresholds: DashboardThresholds;
+  canExport: boolean;
 }
 
 const statusStyles: Record<Severity, string> = {
@@ -36,11 +38,11 @@ function statusLabel(status: Severity) {
   return status === "warning" ? "Review" : "Not Started";
 }
 
-export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterProps) {
+export function ReadinessCenter({ canExport, data, filters, thresholds }: ReadinessCenterProps) {
   const summary = getPayrollReadinessSummary(filters, data, thresholds);
   const metrics = getOverviewMetrics(filters, data);
 
-  function handleExport() {
+  async function handleExport() {
     const rows: CsvRow[] = summary.checklist.map((item) => ({
       payPeriod: filters.payPeriod,
       readinessStatus: summary.status,
@@ -52,7 +54,7 @@ export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterPr
       action: item.action
     }));
 
-    downloadCsv(`payroll-approval-readiness-${sanitizeFileName(filters.payPeriod)}.csv`, rows, {
+    await downloadXlsx(`payroll-approval-readiness-${sanitizeFileName(filters.payPeriod)}.xlsx`, "Payroll Approval Readiness Center", rows, {
       report: "Payroll Approval Readiness Center",
       payPeriod: filters.payPeriod,
       company: filters.company,
@@ -86,14 +88,12 @@ export function ReadinessCenter({ data, filters, thresholds }: ReadinessCenterPr
               </p>
             </div>
           </div>
-          <button
-            className="secondary-action bg-white/90"
-            onClick={handleExport}
-            type="button"
-          >
-            <Download className="h-4 w-4" aria-hidden="true" />
-            Export Readiness
-          </button>
+          {canExport ? (
+            <button className="secondary-action bg-white/90" onClick={() => void handleExport()} type="button">
+              <Download className="h-4 w-4" aria-hidden="true" />
+              Export Readiness
+            </button>
+          ) : null}
         </div>
       </div>
 

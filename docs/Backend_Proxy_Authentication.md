@@ -13,7 +13,7 @@ Same-origin /api calls
    |
 Node Backend Proxy
    |
-Signed HTTP-only Session Cookie
+Microsoft Entra Easy Auth or local development session
    |
 Server-side Role Security
    |
@@ -36,10 +36,14 @@ For local development, run the backend proxy and the Vite app in separate termin
 | Endpoint | Method | Authentication | Purpose |
 | --- | --- | --- | --- |
 | `/api/health` | GET | No | Confirms backend proxy is running and whether Workday URLs are configured. |
-| `/api/auth/session` | GET | Optional | Returns the current signed-in user, if a valid session cookie exists. |
+| `/api/auth/session` | GET | Optional | Returns the current signed-in user and active authentication mode. |
 | `/api/auth/login` | POST | No | Validates user credentials and sets an HTTP-only signed session cookie. |
 | `/api/auth/logout` | POST | Session | Clears the session cookie. |
 | `/api/workday/dashboard-data` | GET | Required | Fetches Workday/demo data, applies role security, and returns scoped dashboard datasets. |
+| `/api/acknowledgements` | GET/POST | Required | Reads or writes persistent, role-scoped exception acknowledgements. |
+| `/api/actions/workday-inbox` | POST | Required | Creates a task through the configured Workday action endpoint and audits the action. |
+| `/api/audit-events` | GET | Payroll/Auditor | Returns role-scoped append-only workflow history. |
+| `/api/delivery/trigger` | POST | Payroll Admin/Manager | Sends a summary and saved dashboard link to the approved delivery webhook. |
 
 ## Demo Users
 
@@ -51,7 +55,20 @@ The backend includes local demo users so the security flow can be tested without
 | `finance.analyst` | `FinanceDemo123!` | Finance Analyst | All demo departments with worker details masked. |
 | `operations.manager` | `ManagerDemo123!` | Department Manager | Operations only, export restricted. |
 
-For production-style use, configure `AUTH_USERS_JSON` in `.env` and provide `passwordHash` values instead of demo passwords.
+Local users are development-only. Production defaults to blocking local authentication.
+
+## Enterprise Authentication
+
+The production implementation supports Microsoft Entra ID through Azure App Service Authentication (Easy Auth):
+
+1. Configure the App Service identity provider and require authentication for all requests.
+2. Set `AUTH_MODE=azure_easy_auth`, `COOKIE_SECURE=true`, and a secret-store-backed `SESSION_SECRET`.
+3. Assign Entra app roles such as `Payroll.Admin`, `Payroll.Manager`, and `Department.Manager`.
+4. Configure `ENTRA_ROLE_MAPPINGS_JSON` to map Entra app roles to dashboard security roles.
+5. Optionally configure `ENTRA_USER_SCOPES_JSON` for department, company, and pay-group restrictions.
+6. Validate that the platform strips client-supplied `X-MS-CLIENT-PRINCIPAL` headers before forwarding trusted identity headers.
+
+The Node service decodes the trusted principal, requires a mapped app role, applies backend row security, and exposes no local password form in enterprise mode. Okta or Workday SSO can be used through an equivalent trusted reverse-proxy/OIDC pattern, but are not silently treated as configured.
 
 ## Role Security Behavior
 
@@ -62,7 +79,9 @@ For production-style use, configure `AUTH_USERS_JSON` in `.env` and provide `pas
 | Pay group scope | Workers outside `allowedPayGroups` are removed. Empty scope means all pay groups allowed. |
 | Related rows | Payroll, time, deduction, and tax rows are filtered to visible workers only. |
 | Worker-detail masking | Finance and read-only roles can receive masked worker names, emails, and locations. |
-| Session security | Session is stored in a signed HTTP-only cookie with `SameSite=Lax`. |
+| Export permission | Export controls are absent when the backend returns `canExport=false`. |
+| Session security | Local sessions use signed HTTP-only cookies; production identity is supplied by Entra Easy Auth. |
+| Audit history | Acknowledgements, Workday task requests, and scheduled deliveries are appended to a server-side JSONL audit store. |
 
 ## Environment Configuration
 
@@ -71,7 +90,7 @@ Copy `.env.example` to `.env` for local configuration. Do not commit `.env`.
 Required for production-style security:
 
 - `SESSION_SECRET`
-- `AUTH_USERS_JSON` or an identity-provider integration replacing local users
+- `AUTH_MODE=azure_easy_auth` and Entra app-role mappings
 
 Required for Workday RaaS/API data:
 
@@ -99,6 +118,6 @@ The recommended columns and CSV/API field contract are documented in `docs/Real_
 - Never place Workday credentials in React code.
 - Never expose Workday bearer tokens to the browser.
 - Use HTTPS and secure cookies in hosted environments.
-- Replace demo authentication with SSO or managed identity for true production.
+- Keep App Service authentication set to require login; do not expose the Node app directly around Easy Auth.
 - Keep Workday row-level security active even when the external backend also filters rows.
 - Treat backend RBAC as an additional protection layer, not a replacement for Workday security.
