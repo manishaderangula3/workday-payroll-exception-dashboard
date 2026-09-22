@@ -40,6 +40,7 @@ For local development, run the backend proxy and the Vite app in separate termin
 | `/api/auth/login` | POST | No | Validates user credentials and sets an HTTP-only signed session cookie. |
 | `/api/auth/logout` | POST | Session | Clears the session cookie. |
 | `/api/workday/dashboard-data` | GET | Required | Fetches Workday/demo data, applies role security, and returns scoped dashboard datasets. |
+| `/api/exports/report` | POST | Export permission | Rebuilds a requested report from server-scoped data, creates the XLSX workbook, and audits the export. |
 | `/api/acknowledgements` | GET/POST | Required | Reads or writes persistent, role-scoped exception acknowledgements. |
 | `/api/actions/workday-inbox` | POST | Required | Creates a task through the configured Workday action endpoint and audits the action. |
 | `/api/audit-events` | GET | Payroll/Auditor | Returns role-scoped append-only workflow history. |
@@ -79,7 +80,7 @@ The Node service decodes the trusted principal, requires a mapped app role, appl
 | Pay group scope | Workers outside `allowedPayGroups` are removed. Empty scope means all pay groups allowed. |
 | Related rows | Payroll, time, deduction, and tax rows are filtered to visible workers only. |
 | Worker-detail masking | Finance and read-only roles can receive masked worker names, emails, and locations. |
-| Export permission | Export controls are absent when the backend returns `canExport=false`. |
+| Export permission | Export controls are absent when `canExport=false`; direct export API requests also return `403`. Proxy-mode workbooks are rebuilt from server-scoped data rather than browser-supplied rows. |
 | Session security | Local sessions use signed HTTP-only cookies; production identity is supplied by Entra Easy Auth. |
 | Audit history | Acknowledgements, Workday task requests, and scheduled deliveries are appended to a server-side JSONL audit store. |
 

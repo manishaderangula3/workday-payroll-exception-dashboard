@@ -13,7 +13,7 @@ import { downloadXlsx } from "../lib/excelExport";
 import { getEffectiveMissingDates } from "../lib/calculations";
 import { formatCurrency, formatDateShort, formatHours } from "../lib/formatters";
 import { getWorkerSnapshot } from "../lib/workerSnapshot";
-import { createWorkdayInboxTask } from "../lib/backendApi";
+import { createWorkdayInboxTask, downloadBackendReport } from "../lib/backendApi";
 import type { DashboardData, DashboardFilters } from "../types/dashboard";
 import { StatusBadge } from "./StatusBadge";
 
@@ -23,6 +23,7 @@ interface WorkerDrillDownProps {
   filters: DashboardFilters;
   canExport: boolean;
   canCreateWorkdayTask: boolean;
+  useServerExport: boolean;
   isAcknowledged: boolean;
   onAcknowledge: (employeeId: string) => void | Promise<void>;
   onClose: () => void;
@@ -45,7 +46,8 @@ export function WorkerDrillDown({
   filters,
   isAcknowledged,
   onAcknowledge,
-  onClose
+  onClose,
+  useServerExport
 }: WorkerDrillDownProps) {
   const [lastAction, setLastAction] = useState<string | null>(null);
   const snapshot = getWorkerSnapshot(employeeId, filters, data);
@@ -62,6 +64,12 @@ export function WorkerDrillDown({
   const timeEntryUrl = timeEntries.map((entry) => entry.timeEntryUrl).find((url) => url?.startsWith("https://"));
 
   async function handleExportSnapshot() {
+    if (useServerExport) {
+      await downloadBackendReport("worker-snapshot", filters, employeeId);
+      setLastAction("Worker snapshot exported by the secured backend and added to the audit trail.");
+      return;
+    }
+
     await downloadXlsx(
       `${sanitizeFileName(employeeId)}-worker-snapshot-${sanitizeFileName(filters.payPeriod)}.xlsx`,
       "Worker Payroll Exception Snapshot",

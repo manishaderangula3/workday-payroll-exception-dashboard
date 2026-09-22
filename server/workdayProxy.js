@@ -8,6 +8,7 @@ import { applyRoleSecurity, publicUser } from "./rbac.js";
 import { fetchWorkdayPages, normalizeWorkdayDataset } from "./workdayData.js";
 import { appendAuditEvent, readAuditEvents } from "./auditStore.js";
 import { sendScheduledDelivery, startScheduledDelivery } from "./scheduledDelivery.js";
+import { createReportExport } from "./reportExport.js";
 
 loadDotEnv();
 
@@ -568,6 +569,44 @@ async function handleApi(request, response, url) {
       user: publicUser(user),
       warnings
     });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/exports/report") {
+    const user = findAuthenticatedUser(request);
+    if (!user) return unauthorized(response);
+    const authorizedUser = publicUser(user);
+    if (!authorizedUser.canExport) {
+      await appendAuditEvent({ type: "report_export_denied", actor: user.username, actorRole: user.role });
+      return forbidden(response, "Export permission is required");
+    }
+
+    const body = await readJsonBody(request);
+    const { data } = await loadWorkdayData();
+    const scopedData = applyRoleSecurity(data, user);
+    let report;
+    try {
+      report = await createReportExport(body, scopedData, authorizedUser.displayName);
+    } catch (error) {
+      return badRequest(response, error instanceof Error ? error.message : "Invalid export request");
+    }
+
+    await appendAuditEvent({
+      type: "report_exported",
+      reportType: String(body.reportType ?? ""),
+      payPeriod: String(body.filters?.payPeriod ?? ""),
+      rowCount: report.rowCount,
+      actor: user.username,
+      actorRole: user.role
+    });
+    response.writeHead(200, {
+      "Cache-Control": "no-store",
+      "Content-Disposition": `attachment; filename="${report.fileName}"`,
+      "Content-Length": report.buffer.length,
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ...securityHeaders()
+    });
+    response.end(report.buffer);
     return;
   }
 

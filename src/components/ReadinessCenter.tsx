@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, ShieldAlert } from "lucide-react";
 import { sanitizeFileName, type CsvRow } from "../lib/csvExport";
 import { downloadXlsx } from "../lib/excelExport";
+import { downloadBackendReport } from "../lib/backendApi";
 import { getOverviewMetrics } from "../lib/calculations";
 import { formatDateShort, formatDeadlineCountdown, formatPercent } from "../lib/formatters";
 import { getPayrollReadinessSummary } from "../lib/readiness";
@@ -11,6 +12,7 @@ interface ReadinessCenterProps {
   filters: DashboardFilters;
   thresholds: DashboardThresholds;
   canExport: boolean;
+  useServerExport: boolean;
 }
 
 const statusStyles: Record<Severity, string> = {
@@ -38,11 +40,16 @@ function statusLabel(status: Severity) {
   return status === "warning" ? "Review" : "Not Started";
 }
 
-export function ReadinessCenter({ canExport, data, filters, thresholds }: ReadinessCenterProps) {
+export function ReadinessCenter({ canExport, data, filters, thresholds, useServerExport }: ReadinessCenterProps) {
   const summary = getPayrollReadinessSummary(filters, data, thresholds);
   const metrics = getOverviewMetrics(filters, data);
 
   async function handleExport() {
+    if (useServerExport) {
+      await downloadBackendReport("readiness", filters, undefined, thresholds);
+      return;
+    }
+
     const rows: CsvRow[] = summary.checklist.map((item) => ({
       payPeriod: filters.payPeriod,
       readinessStatus: summary.status,

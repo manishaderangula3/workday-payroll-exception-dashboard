@@ -1,7 +1,7 @@
 {
-  "tenantBuild": { "status": "pending", "approvedBy": "", "approvedAt": "", "evidence": "" },
-  "security": { "status": "pending", "approvedBy": "", "approvedAt": "", "evidence": "" },
-  "payrollGl": { "status": "pending", "approvedBy": "", "approvedAt": "", "evidence": "" },
-  "performance": { "status": "pending", "approvedBy": "", "approvedAt": "", "evidence": "" },
-  "uat": { "status": "pending", "approvedBy": "", "approvedAt": "", "evidence": "" }
+  "tenantBuild": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
+  "security": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
+  "payrollGl": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
+  "performance": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
+  "uat": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] }
 }

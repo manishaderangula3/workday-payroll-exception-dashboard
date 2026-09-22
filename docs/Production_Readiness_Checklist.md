@@ -25,7 +25,7 @@
 | Runtime errors fail gracefully | Complete | React error boundary wraps the app. |
 | Real payroll credentials excluded | Complete | No Workday credentials, tokens, passwords, or API keys in frontend code. |
 | Backend proxy exists | Complete | Node proxy serves `/api` endpoints and built dashboard assets. |
-| External role security exists | Complete in code | Entra Easy Auth adapter, local development sessions, backend RBAC, masking, and export authorization are implemented. |
+| External role security exists | Complete in code | Entra Easy Auth adapter, local development sessions, backend RBAC, masking, and server-enforced export authorization are implemented. |
 | RaaS runtime validation | Complete in code | Alias normalization, required-field validation, invalid-row rejection, retry, bounded pagination, and same-origin pagination checks. |
 | Workflow persistence | Complete in code | Append-only acknowledgement/action audit history and role-scoped APIs. |
 | Workday actions | Configuration required | Time-entry deep links use source URLs; Inbox task creation uses `WORKDAY_INBOX_TASK_URL`. |
@@ -43,7 +43,7 @@
 
 ## Enforced Release Gate
 
-Run `npm run validate:production` before deployment. The command intentionally fails while `testing/production-evidence.json` contains pending items. It passes only when tenant build validation, security approval, payroll/GL reconciliation, performance testing, and UAT each include an approved status, approver, timestamp, and evidence reference. This prevents documentation templates from being mistaken for executed production validation.
+Run `npm run validate:production` before deployment. The command intentionally fails while `testing/production-evidence.json` contains pending items. Each approval requires a tenant/environment, change ticket, evidence reference, timestamped authorized approver, and approved status. Payroll/GL reconciliation requires both Payroll Manager and Finance Approver sign-off. Use `npm run evidence:record` only after the approver has reviewed the evidence; see `testing/Production_Approval_Runbook.md`.
 
 ## Workday Tenant Go-Live Checklist
 

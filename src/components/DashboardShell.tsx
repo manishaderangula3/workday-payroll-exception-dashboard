@@ -119,7 +119,7 @@ export function DashboardShell({
         {activeTab === "overview" ? (
           <OverviewPreview data={data} filters={filters} onTabChange={onTabChange} thresholds={thresholds} />
         ) : activeTab === "readiness" ? (
-          <ReadinessCenter canExport={canExport} data={data} filters={filters} thresholds={thresholds} />
+          <ReadinessCenter canExport={canExport} data={data} filters={filters} thresholds={thresholds} useServerExport={dataSourceMode === "proxy"} />
         ) : currentBadge === 0 && activeTab !== "payroll-costs" && activeTab !== "documentation" ? (
           <EmptyState
             message={`No ${currentTab.label.toLowerCase()} exceptions match the current shared prompts.`}
@@ -133,6 +133,7 @@ export function DashboardShell({
             data={data}
             filters={filters}
             onWorkerSelect={setSelectedEmployeeId}
+            useServerExport={dataSourceMode === "proxy"}
           />
         )}
 
@@ -146,6 +147,7 @@ export function DashboardShell({
             isAcknowledged={acknowledgedEmployeeIds.has(selectedEmployeeId)}
             onAcknowledge={handleAcknowledge}
             onClose={() => setSelectedEmployeeId(null)}
+            useServerExport={dataSourceMode === "proxy"}
           />
         ) : null}
       </div>

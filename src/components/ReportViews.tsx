@@ -9,6 +9,7 @@ import {
 } from "../lib/reportRows";
 import { type CsvRow, sanitizeFileName } from "../lib/csvExport";
 import { downloadXlsx } from "../lib/excelExport";
+import { downloadBackendReport, type BackendExportReportType } from "../lib/backendApi";
 import { formatCurrency, formatDateShort, formatHours } from "../lib/formatters";
 import type { DashboardData, DashboardFilters, PayrollStatus } from "../types/dashboard";
 import type {
@@ -27,6 +28,7 @@ interface ReportViewsProps {
   filters: DashboardFilters;
   acknowledgedCount: number;
   canExport: boolean;
+  useServerExport: boolean;
   onWorkerSelect: (employeeId: string) => void;
 }
 
@@ -79,7 +81,18 @@ function employeeColumn<TData extends { employeeName: string; employeeId: string
   };
 }
 
-async function exportReport(reportName: string, filters: DashboardFilters, rows: CsvRow[]) {
+async function exportReport(
+  reportType: BackendExportReportType,
+  reportName: string,
+  filters: DashboardFilters,
+  rows: CsvRow[],
+  useServerExport: boolean
+) {
+  if (useServerExport) {
+    await downloadBackendReport(reportType, filters);
+    return;
+  }
+
   await downloadXlsx(
     `${sanitizeFileName(reportName)}-${sanitizeFileName(filters.payPeriod)}.xlsx`,
     reportName,
@@ -376,7 +389,7 @@ function renderDocumentationView() {
   );
 }
 
-export function ReportViews({ acknowledgedCount, activeTab, canExport, data, filters, onWorkerSelect }: ReportViewsProps) {
+export function ReportViews({ acknowledgedCount, activeTab, canExport, data, filters, onWorkerSelect, useServerExport }: ReportViewsProps) {
   if (activeTab === "documentation") {
     return renderDocumentationView();
   }
@@ -400,7 +413,7 @@ export function ReportViews({ acknowledgedCount, activeTab, canExport, data, fil
         columns={payrollCostColumns}
         data={rows}
         description="Payroll cost detail grouped by department and pay group with preserved payroll status visibility."
-        onExport={canExport ? () => void exportReport("Payroll Cost Summary Report", filters, rows as unknown as CsvRow[]) : undefined}
+        onExport={canExport ? () => void exportReport("payroll-costs", "Payroll Cost Summary Report", filters, rows as unknown as CsvRow[], useServerExport) : undefined}
         onRowSelect={onWorkerSelect}
         rowLabel="payroll result rows"
         summary={[
@@ -426,7 +439,7 @@ export function ReportViews({ acknowledgedCount, activeTab, canExport, data, fil
         data={rows}
         description="Non-exempt overtime exceptions sorted by highest overtime hours for manager review."
         initialPageSize={6}
-        onExport={canExport ? () => void exportReport("Overtime Hours Exception Report", filters, rows as unknown as CsvRow[]) : undefined}
+        onExport={canExport ? () => void exportReport("overtime", "Overtime Hours Exception Report", filters, rows as unknown as CsvRow[], useServerExport) : undefined}
         onRowSelect={onWorkerSelect}
         rowLabel="overtime exception rows"
         summary={[
@@ -450,7 +463,7 @@ export function ReportViews({ acknowledgedCount, activeTab, canExport, data, fil
         data={rows}
         description="Workers with missing required time entries, manager contact fields, and exact missing dates."
         initialPageSize={6}
-        onExport={canExport ? () => void exportReport("Missing Time Entries Exception Report", filters, rows as unknown as CsvRow[]) : undefined}
+        onExport={canExport ? () => void exportReport("missing-time", "Missing Time Entries Exception Report", filters, rows as unknown as CsvRow[], useServerExport) : undefined}
         onRowSelect={onWorkerSelect}
         rowLabel="missing time exception rows"
         summary={[
@@ -475,7 +488,7 @@ export function ReportViews({ acknowledgedCount, activeTab, canExport, data, fil
         data={rows}
         description="Failed, over-deducted, under-deducted, and arrears items sorted by largest variance."
         initialPageSize={6}
-        onExport={canExport ? () => void exportReport("Deduction Exception Report", filters, rows as unknown as CsvRow[]) : undefined}
+        onExport={canExport ? () => void exportReport("deductions", "Deduction Exception Report", filters, rows as unknown as CsvRow[], useServerExport) : undefined}
         onRowSelect={onWorkerSelect}
         rowLabel="deduction exception rows"
         summary={[
@@ -498,7 +511,7 @@ export function ReportViews({ acknowledgedCount, activeTab, canExport, data, fil
       data={rows}
       description="Tax withholding and tax form exceptions grouped by issue type for compliance review."
       initialPageSize={6}
-      onExport={canExport ? () => void exportReport("Tax Exception Report", filters, rows as unknown as CsvRow[]) : undefined}
+      onExport={canExport ? () => void exportReport("tax-issues", "Tax Exception Report", filters, rows as unknown as CsvRow[], useServerExport) : undefined}
       onRowSelect={onWorkerSelect}
       rowLabel="tax exception rows"
       summary={[

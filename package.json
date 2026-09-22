@@ -13,7 +13,8 @@
     "test:visual": "playwright test",
     "test:visual:update": "playwright test --update-snapshots",
     "test:functional": "playwright test --grep @functional --project=desktop-chromium",
-    "validate:production": "node scripts/validateProductionReadiness.mjs"
+    "validate:production": "node scripts/validateProductionReadiness.mjs",
+    "evidence:record": "node scripts/recordProductionEvidence.mjs"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",

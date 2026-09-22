@@ -48,6 +48,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - CSV upload mode for replacing sample data with Workday-style report exports and recalculating dashboard results
 - Workday response schema validation, normalization, retry, and bounded same-origin pagination
 - Microsoft Entra Easy Auth integration path with app-role mapping and backend row security
+- Server-generated proxy-mode Excel exports with permission checks and audit events
 - Persistent acknowledgement/action audit trail, real Workday time-entry links, and configurable Inbox task creation
 - Saved report links and scheduled Logic App/Power Automate delivery hooks
 - Production evidence gate for tenant validation, security, reconciliation, performance, and UAT approval
@@ -167,7 +168,7 @@ Backend proxy and authentication adds:
 
 ## Production Status
 
-The application code, automated tests, build, deployment container, and production control adapters are implemented. A live Workday tenant is still an external dependency: release is intentionally blocked until tenant report validation, role/security testing, payroll-to-GL reconciliation, production-volume performance testing, and business UAT are executed and approved. Record that evidence in `testing/production-evidence.json`, then run `npm run validate:production`.
+The application code, automated tests, build, deployment container, and production control adapters are implemented. A live Workday tenant is still an external dependency: release is intentionally blocked until tenant report validation, role/security testing, payroll-to-GL reconciliation, production-volume performance testing, and business UAT are executed and approved. Record genuine approvals using the process in `testing/Production_Approval_Runbook.md`, then run `npm run validate:production`.
 
 Hosted deployment and visual QA adds:
 

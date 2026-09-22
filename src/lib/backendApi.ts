@@ -1,4 +1,4 @@
-import type { AuthenticatedUser, DashboardData } from "../types/dashboard";
+import type { AuthenticatedUser, DashboardData, DashboardFilters, DashboardThresholds } from "../types/dashboard";
 
 export interface BackendSessionResponse {
   authenticated: boolean;
@@ -14,6 +14,15 @@ export interface BackendDataResponse {
   user: AuthenticatedUser;
   warnings: string[];
 }
+
+export type BackendExportReportType =
+  | "payroll-costs"
+  | "overtime"
+  | "missing-time"
+  | "deductions"
+  | "tax-issues"
+  | "readiness"
+  | "worker-snapshot";
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -71,4 +80,32 @@ export function createWorkdayInboxTask(employeeId: string, payPeriod: string) {
     body: JSON.stringify({ employeeId, payPeriod }),
     method: "POST"
   });
+}
+
+export async function downloadBackendReport(
+  reportType: BackendExportReportType,
+  filters: DashboardFilters,
+  employeeId?: string,
+  thresholds?: DashboardThresholds
+) {
+  const response = await fetch("/api/exports/report", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reportType, filters, employeeId, thresholds })
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error ?? `Export failed with status ${response.status}`);
+  }
+
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const fileName = disposition.match(/filename="([^"]+)"/)?.[1] ?? `${reportType}.xlsx`;
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
 }
