@@ -50,6 +50,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Microsoft Entra Easy Auth integration path with app-role mapping and backend row security
 - Server-generated proxy-mode Excel exports with permission checks and audit events
 - Persistent acknowledgement/action audit trail, real Workday time-entry links, and configurable Inbox task creation
+- Fail-closed live configuration validation and durable multi-instance audit API support
 - Saved report links and scheduled Logic App/Power Automate delivery hooks
 - Production evidence gate for tenant validation, security, reconciliation, performance, and UAT approval
 
@@ -409,6 +410,13 @@ Run the production-style local server after building:
 npm start
 ```
 
+Validate resolved production settings before startup:
+
+```bash
+npm run validate:config
+npm run validate:production
+```
+
 Run browser visual regression tests:
 
 ```bash
@@ -425,6 +433,8 @@ npm run test:visual:update
 
 Before implementing this design in a live Workday tenant:
 
+- Set `DEPLOYMENT_PROFILE=live`; configure Entra Easy Auth, all Workday endpoints, Inbox actions, delivery, and durable audit storage through the host secret manager.
+- Require `/api/readiness` to return `200` before routing traffic.
 - Validate all data sources in the target tenant.
 - Confirm payroll, time tracking, benefits, tax, and organization security domains.
 - Build and test calculated fields independently.

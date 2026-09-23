@@ -27,7 +27,7 @@
 | Backend proxy exists | Complete | Node proxy serves `/api` endpoints and built dashboard assets. |
 | External role security exists | Complete in code | Entra Easy Auth adapter, local development sessions, backend RBAC, masking, and server-enforced export authorization are implemented. |
 | RaaS runtime validation | Complete in code | Alias normalization, required-field validation, invalid-row rejection, retry, bounded pagination, and same-origin pagination checks. |
-| Workflow persistence | Complete in code | Append-only acknowledgement/action audit history and role-scoped APIs. |
+| Workflow persistence | Complete in code | Append/query audit adapter and role-scoped APIs; live profile requires a durable HTTPS audit service. |
 | Workday actions | Configuration required | Time-entry deep links use source URLs; Inbox task creation uses `WORKDAY_INBOX_TASK_URL`. |
 | Saved report links | Complete | Current tab and prompts are URL-backed and copyable. |
 | Scheduled distribution | Configuration required | Interval scheduler posts aggregate summaries and saved links to an approved Logic App/Power Automate webhook. |
@@ -40,10 +40,13 @@
 | Performance test plan | Complete | `testing/Performance_Testing_Plan.md` |
 | UAT sign-off packet | Complete | `testing/UAT_Signoff_Packet.md` |
 | Production evidence gate | Complete | `npm run validate:production` blocks release until all five external approvals are recorded. |
+| Runtime configuration gate | Complete | `npm run validate:config` and server startup reject incomplete live SSO, Workday, action, delivery, secret, or audit settings. |
 
 ## Enforced Release Gate
 
 Run `npm run validate:production` before deployment. The command intentionally fails while `testing/production-evidence.json` contains pending items. Each approval requires a tenant/environment, change ticket, evidence reference, timestamped authorized approver, and approved status. Payroll/GL reconciliation requires both Payroll Manager and Finance Approver sign-off. Use `npm run evidence:record` only after the approver has reviewed the evidence; see `testing/Production_Approval_Runbook.md`.
+
+Run `npm run validate:config` in the target hosting environment after its secret manager has resolved settings. For real payroll data, set `DEPLOYMENT_PROFILE=live`; the backend will not listen unless Entra, every Workday dataset, Inbox action, delivery webhook, and durable audit configuration passes validation. This gate validates configuration presence and transport security, while the production evidence gate records actual tenant connectivity and business approval.
 
 ## Workday Tenant Go-Live Checklist
 

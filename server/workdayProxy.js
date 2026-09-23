@@ -1,5 +1,5 @@
 import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,6 +9,7 @@ import { fetchWorkdayPages, normalizeWorkdayDataset } from "./workdayData.js";
 import { appendAuditEvent, readAuditEvents } from "./auditStore.js";
 import { sendScheduledDelivery, startScheduledDelivery } from "./scheduledDelivery.js";
 import { createReportExport } from "./reportExport.js";
+import { assertRuntimeConfig, loadDotEnv, runtimeConfigurationStatus } from "./runtimeConfig.js";
 
 loadDotEnv();
 
@@ -66,31 +67,6 @@ const demoUsers = [
     allowedPayGroups: []
   }
 ];
-
-function loadDotEnv() {
-  const envPath = resolve(".env");
-
-  if (!existsSync(envPath)) {
-    return;
-  }
-
-  const lines = readFileSync(envPath, "utf8").split(/\r?\n/);
-
-  lines.forEach((line) => {
-    const trimmed = line.trim();
-
-    if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) {
-      return;
-    }
-
-    const [key, ...valueParts] = trimmed.split("=");
-    const value = valueParts.join("=").trim().replace(/^"|"$/g, "");
-
-    if (!process.env[key]) {
-      process.env[key] = value;
-    }
-  });
-}
 
 function jsonResponse(response, statusCode, payload, headers = {}) {
   response.writeHead(statusCode, {
@@ -477,11 +453,19 @@ async function loadWorkdayData() {
 
 async function handleApi(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/health") {
+    const configuration = runtimeConfigurationStatus();
     jsonResponse(response, 200, {
       ok: true,
       authMode,
-      workdayConfigured: Object.values(datasetUrls()).some(Boolean)
+      workdayConfigured: Object.values(datasetUrls()).every(Boolean),
+      configuration
     });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/readiness") {
+    const configuration = runtimeConfigurationStatus();
+    jsonResponse(response, configuration.ready ? 200 : 503, configuration);
     return;
   }
 
@@ -617,8 +601,8 @@ async function handleApi(request, response, url) {
     const scopedData = applyRoleSecurity(data, user);
     const visibleWorkerIds = new Set(scopedData.workers.map((worker) => worker.employeeId));
     const payPeriod = url.searchParams.get("payPeriod") ?? "";
-    const events = (await readAuditEvents()).filter(
-      (event) => event.type === "exception_acknowledged" && event.payPeriod === payPeriod && visibleWorkerIds.has(event.employeeId)
+    const events = (await readAuditEvents({ type: "exception_acknowledged", payPeriod })).filter((event) =>
+      visibleWorkerIds.has(event.employeeId)
     );
     jsonResponse(response, 200, { employeeIds: [...new Set(events.map((event) => event.employeeId))] });
     return;
@@ -675,7 +659,7 @@ async function handleApi(request, response, url) {
     const { data } = await loadWorkdayData();
     const scopedData = applyRoleSecurity(data, user);
     const visibleWorkerIds = new Set(scopedData.workers.map((worker) => worker.employeeId));
-    const events = (await readAuditEvents()).filter((event) => !event.employeeId || visibleWorkerIds.has(event.employeeId));
+    const events = (await readAuditEvents({ limit: 10000 })).filter((event) => !event.employeeId || visibleWorkerIds.has(event.employeeId));
     jsonResponse(response, 200, { events });
     return;
   }
@@ -799,6 +783,7 @@ const server = createServer(async (request, response) => {
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  assertRuntimeConfig();
   server.listen(port, host, () => {
     startScheduledDelivery(loadWorkdayData, () =>
       appendAuditEvent({ type: "scheduled_report_delivered", actor: "scheduler", actorRole: "system" })

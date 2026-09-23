@@ -15,9 +15,11 @@ This is the selected production path because the dashboard now includes Workday 
 | Frontend build | `npm run build` creates `dist/` |
 | Runtime command | `npm start` |
 | Health check | `/api/health` |
+| Readiness check | `/api/readiness` |
 | Public traffic | HTTPS reverse proxy or platform TLS |
 | Workday traffic | Backend-only outbound HTTPS to Workday RaaS/API endpoints |
 | Credentials | Runtime secret store only, never frontend code |
+| Audit storage | Durable HTTPS audit API backed by an approved database/platform |
 
 ## Recommended Platforms
 
@@ -57,9 +59,11 @@ Workday RaaS/API Reports
 | `PORT` | Platform-dependent | Runtime port. Defaults to `8787` locally. |
 | `SESSION_SECRET` | Yes | Signs HTTP-only session cookies. |
 | `COOKIE_SECURE=true` | Yes for HTTPS | Adds the Secure flag to session cookies. |
-| `AUTH_USERS_JSON` | Production yes | Defines approved users, roles, and security scopes. |
+| `DEPLOYMENT_PROFILE=live` | Yes for real payroll data | Enables strict startup validation; use `portfolio` only for synthetic deployments. |
+| `AUTH_MODE=azure_easy_auth` | Yes | Uses the hosting platform's trusted Entra identity headers. |
 | `WORKDAY_*_URL` | Production yes | RaaS/API report endpoints for workers, payroll, time, deductions, and tax. |
 | `WORKDAY_BEARER_TOKEN` or `WORKDAY_USERNAME`/`WORKDAY_PASSWORD` | Production yes | Backend-only Workday authentication. |
+| `AUDIT_STORE_MODE=http` and `AUDIT_STORE_*` | Live yes | Sends audit events to durable shared storage; local JSONL is not accepted for live deployments. |
 
 ## Container Deployment
 
@@ -72,12 +76,16 @@ docker run --env-file .env -p 8787:8787 workday-payroll-dashboard
 
 The container serves the compiled dashboard and API proxy together. In production, use the host platform's secret manager instead of a local `.env` file.
 
+Before routing traffic, run `npm run validate:config` with the deployment's resolved secrets and configure the platform readiness probe to `/api/readiness`. A live instance exits before listening when configuration is incomplete.
+
 ## Release Checklist
 
 | Step | Owner | Completion Criteria |
 | --- | --- | --- |
 | Build app | Reporting/Systems Analyst | `npm run build` succeeds. |
 | Configure secrets | IT/Security | Required runtime variables are present in the host secret store. |
+| Validate runtime configuration | IT/Security | `npm run validate:config` passes for `DEPLOYMENT_PROFILE=live`. |
+| Validate durable audit | IT/Security | Append/query tests pass, retention is configured, and backup/restore evidence is approved. |
 | Configure Workday reports | Workday Reporting Analyst | RaaS/API URLs return expected datasets to the backend. |
 | Validate authentication | HRIS/IT | Users can sign in and sessions use HTTP-only secure cookies. |
 | Validate role security | Payroll/HRIS/Security | Manager, HR Partner, Finance, and Payroll Admin scopes return only authorized rows. |

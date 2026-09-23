@@ -35,7 +35,8 @@ For local development, run the backend proxy and the Vite app in separate termin
 
 | Endpoint | Method | Authentication | Purpose |
 | --- | --- | --- | --- |
-| `/api/health` | GET | No | Confirms backend proxy is running and whether Workday URLs are configured. |
+| `/api/health` | GET | No | Confirms the process is running and returns secret-free integration status. |
+| `/api/readiness` | GET | No | Returns `200` when runtime configuration is valid and `503` when deployment settings are incomplete. |
 | `/api/auth/session` | GET | Optional | Returns the current signed-in user and active authentication mode. |
 | `/api/auth/login` | POST | No | Validates user credentials and sets an HTTP-only signed session cookie. |
 | `/api/auth/logout` | POST | Session | Clears the session cookie. |
@@ -82,7 +83,7 @@ The Node service decodes the trusted principal, requires a mapped app role, appl
 | Worker-detail masking | Finance and read-only roles can receive masked worker names, emails, and locations. |
 | Export permission | Export controls are absent when `canExport=false`; direct export API requests also return `403`. Proxy-mode workbooks are rebuilt from server-scoped data rather than browser-supplied rows. |
 | Session security | Local sessions use signed HTTP-only cookies; production identity is supplied by Entra Easy Auth. |
-| Audit history | Acknowledgements, Workday task requests, and scheduled deliveries are appended to a server-side JSONL audit store. |
+| Audit history | Live deployments append to and query a durable audit API. JSONL is limited to local development and portfolio deployments. |
 
 ## Environment Configuration
 
@@ -92,6 +93,7 @@ Required for production-style security:
 
 - `SESSION_SECRET`
 - `AUTH_MODE=azure_easy_auth` and Entra app-role mappings
+- `DEPLOYMENT_PROFILE=live` for real Workday data
 
 Required for Workday RaaS/API data:
 
@@ -101,6 +103,25 @@ Required for Workday RaaS/API data:
 - `WORKDAY_DEDUCTION_RESULTS_URL`
 - `WORKDAY_TAX_RESULTS_URL`
 - `WORKDAY_BEARER_TOKEN` or controlled backend-only `WORKDAY_USERNAME` / `WORKDAY_PASSWORD`
+
+Required for a live deployment:
+
+- HTTPS `WORKDAY_INBOX_TASK_URL`, `PUBLIC_APP_URL`, and `REPORT_DELIVERY_WEBHOOK_URL`
+- `REPORT_DELIVERY_RECIPIENTS` and a secret-store-backed `REPORT_DELIVERY_SECRET`
+- `AUDIT_STORE_MODE=http`, HTTPS `AUDIT_STORE_URL`, `AUDIT_STORE_TOKEN`, `AUDIT_RETENTION_DAYS` of at least 365, and an approved `AUDIT_BACKUP_POLICY_REFERENCE`
+
+Run `npm run validate:config` in the deployment environment before starting the service. The same validation runs automatically at server startup. Production requires an explicit `portfolio` or `live` deployment profile, preventing an accidental fallback to demo data.
+
+## Durable Audit API Contract
+
+The backing API can front Azure SQL, Cosmos DB, PostgreSQL, Microsoft Sentinel, or another approved audit platform. It must provide:
+
+| Operation | Contract |
+| --- | --- |
+| Append | `POST AUDIT_STORE_URL` with bearer authentication and body `{ "event": { ... } }`; return any `2xx` status only after durable write acceptance. |
+| Query | `GET AUDIT_STORE_URL?type=...&payPeriod=...&limit=...` with bearer authentication; return `{ "events": [...] }` or an array. |
+| Integrity | Preserve the application-generated UUID and UTC timestamp; restrict update/delete access. |
+| Operations | Enforce the configured retention, encryption, backup, restore testing, access logging, and least-privilege service identity outside this application. |
 
 ## Workday Report Contract
 
