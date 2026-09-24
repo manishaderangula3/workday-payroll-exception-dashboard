@@ -68,9 +68,14 @@ export function validateRuntimeConfig(env = process.env) {
   });
 
   if (!env.REPORT_DELIVERY_RECIPIENTS?.trim()) errors.push("REPORT_DELIVERY_RECIPIENTS is required");
-  if (!env.REPORT_DELIVERY_SECRET?.trim()) errors.push("REPORT_DELIVERY_SECRET is required");
+  if (!env.REPORT_DELIVERY_SECRET || env.REPORT_DELIVERY_SECRET.length < 32) errors.push("REPORT_DELIVERY_SECRET must be at least 32 characters");
+  if (env.REPORT_DELIVERY_REQUIRE_RECEIPT !== "true") errors.push("REPORT_DELIVERY_REQUIRE_RECEIPT must be true");
+  const deliveryInterval = Number(env.REPORT_DELIVERY_INTERVAL_MINUTES);
+  if (!Number.isFinite(deliveryInterval) || deliveryInterval < 15) errors.push("REPORT_DELIVERY_INTERVAL_MINUTES must be at least 15");
+  const attachmentLimit = Number(env.REPORT_DELIVERY_MAX_ATTACHMENT_BYTES ?? 5 * 1024 * 1024);
+  if (!Number.isFinite(attachmentLimit) || attachmentLimit < 1024) errors.push("REPORT_DELIVERY_MAX_ATTACHMENT_BYTES must be at least 1024");
   if (env.AUDIT_STORE_MODE !== "http") errors.push("AUDIT_STORE_MODE must be http for live deployments");
-  if (!env.AUDIT_STORE_TOKEN?.trim()) errors.push("AUDIT_STORE_TOKEN is required");
+  if (!env.AUDIT_STORE_TOKEN || env.AUDIT_STORE_TOKEN.length < 32) errors.push("AUDIT_STORE_TOKEN must be at least 32 characters");
 
   const retentionDays = Number(env.AUDIT_RETENTION_DAYS);
   if (!Number.isInteger(retentionDays) || retentionDays < 365) errors.push("AUDIT_RETENTION_DAYS must be at least 365");

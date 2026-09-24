@@ -30,7 +30,7 @@
 | Workflow persistence | Complete in code | Append/query audit adapter and role-scoped APIs; live profile requires a durable HTTPS audit service. |
 | Workday actions | Configuration required | Time-entry deep links use source URLs; Inbox task creation uses `WORKDAY_INBOX_TASK_URL`. |
 | Saved report links | Complete | Current tab and prompts are URL-backed and copyable. |
-| Scheduled distribution | Configuration required | Interval scheduler posts aggregate summaries and saved links to an approved Logic App/Power Automate webhook. |
+| Scheduled distribution | Complete in code; configuration required | Interval scheduler attaches a server-generated readiness workbook, requires a provider receipt, and audits idempotent delivered/failed/bounced callbacks. |
 | Hosted deployment decision | Complete | Full-stack Node.js hosting selected; see `docs/Hosting_Deployment_Decision.md`. |
 | Browser visual regression tests | Complete | Playwright desktop, mobile, and proxy role-scope screenshots are configured. |
 | Documentation linked | Complete | README links build plan, QA audit, and real-time data integration guide. |

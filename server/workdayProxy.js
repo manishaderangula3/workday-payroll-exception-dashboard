@@ -113,6 +113,29 @@ function tooManyRequests(response) {
   jsonResponse(response, 429, { error: "Too many failed sign-in attempts. Try again later." });
 }
 
+function secureValueMatches(actual, expected) {
+  if (!actual || !expected) return false;
+  const actualBuffer = Buffer.from(actual);
+  const expectedBuffer = Buffer.from(expected);
+  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
+function deliveryAuditRecord(delivery, actor, actorRole) {
+  return {
+    type: "scheduled_report_delivery_accepted",
+    deliveryId: delivery.deliveryId,
+    providerReceiptId: delivery.receipt.providerReceiptId,
+    deliveryStatus: delivery.receipt.status,
+    payPeriod: delivery.payPeriod,
+    recipientCount: delivery.recipients.length,
+    attachmentFileName: delivery.attachment.fileName,
+    attachmentSizeBytes: delivery.attachment.sizeBytes,
+    attachmentSha256: delivery.attachment.sha256,
+    actor,
+    actorRole
+  };
+}
+
 function parseCookies(request) {
   const header = request.headers.cookie ?? "";
 
@@ -664,14 +687,43 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/delivery/receipt") {
+    const suppliedSecret = Array.isArray(request.headers["x-delivery-secret"])
+      ? request.headers["x-delivery-secret"][0]
+      : request.headers["x-delivery-secret"];
+    if (!secureValueMatches(suppliedSecret, process.env.REPORT_DELIVERY_SECRET)) return unauthorized(response, "Invalid delivery receipt secret");
+    const body = await readJsonBody(request);
+    const deliveryId = String(body.deliveryId ?? "").trim();
+    const providerReceiptId = String(body.providerReceiptId ?? body.receiptId ?? "").trim();
+    const deliveryStatus = String(body.status ?? "").trim().toLowerCase();
+    if (!deliveryId || !["accepted", "delivered", "failed", "bounced"].includes(deliveryStatus)) {
+      return badRequest(response, "deliveryId and a valid status are required");
+    }
+    const existing = (await readAuditEvents({ type: "scheduled_report_delivery_receipt", deliveryId, limit: 100 })).find(
+      (event) => event.deliveryStatus === deliveryStatus && event.providerReceiptId === providerReceiptId
+    );
+    if (existing) return jsonResponse(response, 200, { receipt: existing, duplicate: true });
+    const receipt = await appendAuditEvent({
+      type: "scheduled_report_delivery_receipt",
+      deliveryId,
+      providerReceiptId,
+      deliveryStatus,
+      deliveredAt: String(body.deliveredAt ?? new Date().toISOString()),
+      actor: "delivery_webhook",
+      actorRole: "system"
+    });
+    jsonResponse(response, 202, { receipt, duplicate: false });
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/delivery/trigger") {
     const user = findAuthenticatedUser(request);
     if (!user) return unauthorized(response);
     if (!["payroll_admin", "payroll_manager"].includes(user.role)) return forbidden(response);
     const { data } = await loadWorkdayData();
-    const payload = await sendScheduledDelivery(data);
-    await appendAuditEvent({ type: "scheduled_report_delivered", actor: user.username, actorRole: user.role });
-    jsonResponse(response, 200, { delivered: true, payload });
+    const delivery = await sendScheduledDelivery(data);
+    await appendAuditEvent(deliveryAuditRecord(delivery, user.username, user.role));
+    jsonResponse(response, 200, { accepted: true, delivery });
     return;
   }
 
@@ -785,11 +837,11 @@ const server = createServer(async (request, response) => {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   assertRuntimeConfig();
   server.listen(port, host, () => {
-    startScheduledDelivery(loadWorkdayData, () =>
-      appendAuditEvent({ type: "scheduled_report_delivered", actor: "scheduler", actorRole: "system" })
+    startScheduledDelivery(loadWorkdayData, (delivery) =>
+      appendAuditEvent(deliveryAuditRecord(delivery, "scheduler", "system"))
     );
     console.log(`Workday dashboard backend proxy running at http://${host}:${port}`);
   });
 }
 
-export { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, server, verifyPassword };
+export { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, server, verifyPassword };

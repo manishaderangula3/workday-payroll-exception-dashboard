@@ -19,10 +19,13 @@ function liveConfig() {
     PUBLIC_APP_URL: "https://payroll.example",
     REPORT_DELIVERY_WEBHOOK_URL: "https://workflow.example/deliver",
     REPORT_DELIVERY_RECIPIENTS: "payroll@example.com",
-    REPORT_DELIVERY_SECRET: "delivery-secret",
+    REPORT_DELIVERY_SECRET: "delivery-secret-at-least-32-characters",
+    REPORT_DELIVERY_REQUIRE_RECEIPT: "true",
+    REPORT_DELIVERY_INTERVAL_MINUTES: "60",
+    REPORT_DELIVERY_MAX_ATTACHMENT_BYTES: "5242880",
     AUDIT_STORE_MODE: "http",
     AUDIT_STORE_URL: "https://audit.example/events",
-    AUDIT_STORE_TOKEN: "audit-token",
+    AUDIT_STORE_TOKEN: "audit-token-at-least-32-characters",
     AUDIT_RETENTION_DAYS: "2555",
     AUDIT_BACKUP_POLICY_REFERENCE: "POL-AUDIT-001"
   };

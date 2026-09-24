@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, verifyPassword } from "./workdayProxy.js";
+import { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, verifyPassword } from "./workdayProxy.js";
 
 function requestFromText(text) {
   return {
@@ -10,6 +10,12 @@ function requestFromText(text) {
 }
 
 describe("backend proxy hardening", () => {
+  it("compares delivery callback secrets without accepting partial values", () => {
+    expect(secureValueMatches("shared-delivery-secret", "shared-delivery-secret")).toBe(true);
+    expect(secureValueMatches("shared-delivery", "shared-delivery-secret")).toBe(false);
+    expect(secureValueMatches(undefined, "shared-delivery-secret")).toBe(false);
+  });
+
   it("rejects static paths that escape the built asset directory", () => {
     expect(resolveStaticFilePath("/../package.json")).toBeNull();
     expect(resolveStaticFilePath("/%2e%2e/package.json")).toBeNull();

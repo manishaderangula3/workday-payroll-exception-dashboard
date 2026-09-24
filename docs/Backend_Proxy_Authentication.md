@@ -45,7 +45,8 @@ For local development, run the backend proxy and the Vite app in separate termin
 | `/api/acknowledgements` | GET/POST | Required | Reads or writes persistent, role-scoped exception acknowledgements. |
 | `/api/actions/workday-inbox` | POST | Required | Creates a task through the configured Workday action endpoint and audits the action. |
 | `/api/audit-events` | GET | Payroll/Auditor | Returns role-scoped append-only workflow history. |
-| `/api/delivery/trigger` | POST | Payroll Admin/Manager | Sends a summary and saved dashboard link to the approved delivery webhook. |
+| `/api/delivery/trigger` | POST | Payroll Admin/Manager | Sends the current readiness workbook, aggregate summary, and dashboard link to the approved delivery webhook. |
+| `/api/delivery/receipt` | POST | Delivery secret | Accepts idempotent delivered, failed, or bounced callbacks and writes them to the audit trail. |
 
 ## Demo Users
 
@@ -107,10 +108,27 @@ Required for Workday RaaS/API data:
 Required for a live deployment:
 
 - HTTPS `WORKDAY_INBOX_TASK_URL`, `PUBLIC_APP_URL`, and `REPORT_DELIVERY_WEBHOOK_URL`
-- `REPORT_DELIVERY_RECIPIENTS` and a secret-store-backed `REPORT_DELIVERY_SECRET`
+- `REPORT_DELIVERY_RECIPIENTS`, `REPORT_DELIVERY_INTERVAL_MINUTES` of at least 15, and a secret-store-backed `REPORT_DELIVERY_SECRET` of at least 32 characters
+- `REPORT_DELIVERY_REQUIRE_RECEIPT=true` and an attachment limit appropriate for the selected webhook platform
 - `AUDIT_STORE_MODE=http`, HTTPS `AUDIT_STORE_URL`, `AUDIT_STORE_TOKEN`, `AUDIT_RETENTION_DAYS` of at least 365, and an approved `AUDIT_BACKUP_POLICY_REFERENCE`
 
 Run `npm run validate:config` in the deployment environment before starting the service. The same validation runs automatically at server startup. Production requires an explicit `portfolio` or `live` deployment profile, preventing an accidental fallback to demo data.
+
+## Scheduled Delivery Contract
+
+The scheduler selects the latest payroll period by payment date unless `REPORT_DELIVERY_PAY_PERIOD` is set. It generates the same Payroll Approval Readiness `.xlsx` workbook used by server exports and sends JSON containing the aggregate summary, saved dashboard link, receipt callback URL, and this attachment shape:
+
+```json
+{
+  "attachments": [{
+    "fileName": "payroll-approval-readiness-center-period.xlsx",
+    "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "contentBase64": "..."
+  }]
+}
+```
+
+The webhook must return a `2xx` response with `receiptId`, `deliveryId`, `messageId`, or `id`. It should later call `POST /api/delivery/receipt` with the same `deliveryId`, the `X-Delivery-Secret` header, and a status of `delivered`, `failed`, or `bounced`. Acceptance and final receipt events include the pay period, provider receipt, recipient count, workbook size, and SHA-256 digest; attachment bytes and recipient addresses are not stored in the audit trail.
 
 ## Durable Audit API Contract
 

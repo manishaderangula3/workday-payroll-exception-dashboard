@@ -51,7 +51,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Server-generated proxy-mode Excel exports with permission checks and audit events
 - Persistent acknowledgement/action audit trail, real Workday time-entry links, and configurable Inbox task creation
 - Fail-closed live configuration validation and durable multi-instance audit API support
-- Saved report links and scheduled Logic App/Power Automate delivery hooks
+- Saved report links and scheduled Excel delivery with provider and final-status receipts
 - Production evidence gate for tenant validation, security, reconciliation, performance, and UAT approval
 
 ## Interactive Dashboard App
@@ -165,7 +165,7 @@ Backend proxy and authentication adds:
 - Backend role-based filtering by department, company, and pay group
 - Worker-detail masking for finance/read-only style roles
 - Frontend Backend Proxy data mode that loads scoped data through `/api`
-- Export authorization enforcement, persistent audit APIs, Workday task action hook, and scheduled delivery webhook
+- Export authorization enforcement, persistent audit APIs, Workday task action hook, and receipt-tracked Excel delivery webhook
 
 ## Production Status
 
