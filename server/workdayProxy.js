@@ -1,4 +1,4 @@
-import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, pbkdf2Sync, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, isAbsolute, relative, resolve } from "node:path";
@@ -10,6 +10,7 @@ import { appendAuditEvent, readAuditEvents } from "./auditStore.js";
 import { sendScheduledDelivery, startScheduledDelivery } from "./scheduledDelivery.js";
 import { createReportExport } from "./reportExport.js";
 import { assertRuntimeConfig, loadDotEnv, runtimeConfigurationStatus } from "./runtimeConfig.js";
+import { logEvent, operationalMetrics, recordRequest, sendOperationalAlert } from "./operations.js";
 
 loadDotEnv();
 
@@ -17,6 +18,7 @@ const port = Number(process.env.PORT ?? 8787);
 const host = process.env.HOST ?? "127.0.0.1";
 const sessionCookieName = "wd_dash_session";
 const sessionSecret = process.env.SESSION_SECRET ?? "local-development-session-secret-change-me";
+const previousSessionSecret = process.env.SESSION_SECRET_PREVIOUS;
 const secureCookie = process.env.COOKIE_SECURE === "true";
 const distPath = resolve("dist");
 const maxJsonBodyBytes = 64 * 1024;
@@ -151,8 +153,8 @@ function parseCookies(request) {
   );
 }
 
-function sign(value) {
-  return createHmac("sha256", sessionSecret).update(value).digest("base64url");
+function sign(value, secret = sessionSecret) {
+  return createHmac("sha256", secret).update(value).digest("base64url");
 }
 
 function createSessionCookie(user) {
@@ -180,12 +182,11 @@ function parseSession(request) {
   }
 
   const [payload, signature] = value.split(".");
-  const expectedSignature = sign(payload);
+  const validSignature = [sessionSecret, previousSessionSecret]
+    .filter(Boolean)
+    .some((secret) => secureValueMatches(signature, sign(payload, secret)));
 
-  if (
-    signature.length !== expectedSignature.length ||
-    !timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
-  ) {
+  if (!validSignature) {
     return null;
   }
 
@@ -492,6 +493,19 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/metrics") {
+    const authorization = Array.isArray(request.headers.authorization)
+      ? request.headers.authorization[0]
+      : request.headers.authorization;
+    const token = authorization?.startsWith("Bearer ") ? authorization.slice(7) : "";
+    const validToken = [process.env.MONITORING_TOKEN, process.env.MONITORING_TOKEN_PREVIOUS]
+      .filter(Boolean)
+      .some((candidate) => secureValueMatches(token, candidate));
+    if (!validToken) return unauthorized(response, "Invalid monitoring token");
+    jsonResponse(response, 200, operationalMetrics());
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/auth/session") {
     const user = findAuthenticatedUser(request);
     jsonResponse(response, 200, {
@@ -691,7 +705,10 @@ async function handleApi(request, response, url) {
     const suppliedSecret = Array.isArray(request.headers["x-delivery-secret"])
       ? request.headers["x-delivery-secret"][0]
       : request.headers["x-delivery-secret"];
-    if (!secureValueMatches(suppliedSecret, process.env.REPORT_DELIVERY_SECRET)) return unauthorized(response, "Invalid delivery receipt secret");
+    const validSecret = [process.env.REPORT_DELIVERY_SECRET, process.env.REPORT_DELIVERY_SECRET_PREVIOUS]
+      .filter(Boolean)
+      .some((secret) => secureValueMatches(suppliedSecret, secret));
+    if (!validSecret) return unauthorized(response, "Invalid delivery receipt secret");
     const body = await readJsonBody(request);
     const deliveryId = String(body.deliveryId ?? "").trim();
     const providerReceiptId = String(body.providerReceiptId ?? body.receiptId ?? "").trim();
@@ -807,8 +824,27 @@ function serveStatic(response, url) {
 }
 
 const server = createServer(async (request, response) => {
+  const startedAt = performance.now();
+  const suppliedRequestId = Array.isArray(request.headers["x-request-id"])
+    ? request.headers["x-request-id"][0]
+    : request.headers["x-request-id"];
+  const requestId = suppliedRequestId && /^[a-z0-9._-]{1,128}$/i.test(suppliedRequestId) ? suppliedRequestId : randomUUID();
+  let requestPath = "/";
+  response.setHeader("X-Request-ID", requestId);
+  response.once("finish", () => {
+    const durationMs = Number((performance.now() - startedAt).toFixed(2));
+    recordRequest(request.method ?? "GET", requestPath, response.statusCode, durationMs);
+    logEvent("info", "http_request", {
+      requestId,
+      method: request.method ?? "GET",
+      path: requestPath,
+      statusCode: response.statusCode,
+      durationMs
+    });
+  });
   try {
     const url = new URL(request.url ?? "/", `http://${request.headers.host}`);
+    requestPath = url.pathname;
 
     if (url.pathname.startsWith("/api/")) {
       await handleApi(request, response, url);
@@ -829,7 +865,12 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    console.error("Backend proxy error:", error);
+    logEvent("error", "backend_request_failed", { requestId, path: requestPath, errorName: error?.name, message });
+    void sendOperationalAlert({ severity: "critical", event: "backend_request_failed", requestId, path: requestPath, message })
+      .catch((alertError) => logEvent("error", "alert_delivery_failed", {
+        requestId,
+        message: alertError instanceof Error ? alertError.message : "Unknown alert error"
+      }));
     jsonResponse(response, 500, { error: "Unexpected server error" });
   }
 });
@@ -837,10 +878,19 @@ const server = createServer(async (request, response) => {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   assertRuntimeConfig();
   server.listen(port, host, () => {
-    startScheduledDelivery(loadWorkdayData, (delivery) =>
-      appendAuditEvent(deliveryAuditRecord(delivery, "scheduler", "system"))
+    startScheduledDelivery(
+      loadWorkdayData,
+      (delivery) => appendAuditEvent(deliveryAuditRecord(delivery, "scheduler", "system")),
+      async (error) => {
+        const message = error instanceof Error ? error.message : "Unknown scheduled delivery error";
+        logEvent("error", "scheduled_delivery_failed", { message });
+        await sendOperationalAlert({ severity: "high", event: "scheduled_delivery_failed", message })
+          .catch((alertError) => logEvent("error", "alert_delivery_failed", {
+            message: alertError instanceof Error ? alertError.message : "Unknown alert error"
+          }));
+      }
     );
-    console.log(`Workday dashboard backend proxy running at http://${host}:${port}`);
+    logEvent("info", "service_started", { host, port, profile: process.env.DEPLOYMENT_PROFILE ?? "development" });
   });
 }
 

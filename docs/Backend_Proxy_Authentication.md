@@ -37,6 +37,7 @@ For local development, run the backend proxy and the Vite app in separate termin
 | --- | --- | --- | --- |
 | `/api/health` | GET | No | Confirms the process is running and returns secret-free integration status. |
 | `/api/readiness` | GET | No | Returns `200` when runtime configuration is valid and `503` when deployment settings are incomplete. |
+| `/api/metrics` | GET | Monitoring bearer token | Returns aggregate request, error, latency, uptime, route, and memory metrics without payroll rows. |
 | `/api/auth/session` | GET | Optional | Returns the current signed-in user and active authentication mode. |
 | `/api/auth/login` | POST | No | Validates user credentials and sets an HTTP-only signed session cookie. |
 | `/api/auth/logout` | POST | Session | Clears the session cookie. |
@@ -111,6 +112,8 @@ Required for a live deployment:
 - `REPORT_DELIVERY_RECIPIENTS`, `REPORT_DELIVERY_INTERVAL_MINUTES` of at least 15, and a secret-store-backed `REPORT_DELIVERY_SECRET` of at least 32 characters
 - `REPORT_DELIVERY_REQUIRE_RECEIPT=true` and an attachment limit appropriate for the selected webhook platform
 - `AUDIT_STORE_MODE=http`, HTTPS `AUDIT_STORE_URL`, `AUDIT_STORE_TOKEN`, `AUDIT_RETENTION_DAYS` of at least 365, and an approved `AUDIT_BACKUP_POLICY_REFERENCE`
+- JSON logging, central-log and monitoring references, `MONITORING_TOKEN`, and the HTTPS alert webhook/runbook settings
+- Secret-rotation timestamp/policy, disaster-recovery plan with RTO/RPO, and penetration-test policy reference
 
 Run `npm run validate:config` in the deployment environment before starting the service. The same validation runs automatically at server startup. Production requires an explicit `portfolio` or `live` deployment profile, preventing an accidental fallback to demo data.
 
@@ -161,3 +164,4 @@ The recommended columns and CSV/API field contract are documented in `docs/Real_
 - Keep App Service authentication set to require login; do not expose the Node app directly around Easy Auth.
 - Keep Workday row-level security active even when the external backend also filters rows.
 - Treat backend RBAC as an additional protection layer, not a replacement for Workday security.
+- During rotation, `SESSION_SECRET_PREVIOUS` and `REPORT_DELIVERY_SECRET_PREVIOUS` provide a temporary overlap window; remove retired values after validation.

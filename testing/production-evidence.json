@@ -3,5 +3,10 @@
   "security": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
   "payrollGl": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
   "performance": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
-  "uat": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] }
+  "uat": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
+  "observability": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
+  "backupRestore": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
+  "secretRotation": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
+  "disasterRecovery": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] },
+  "penetration": { "status": "pending", "environment": "", "changeTicket": "", "evidence": "", "approvals": [] }
 }

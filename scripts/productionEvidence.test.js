@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { recordApproval, validateProductionEvidence } from "./productionEvidence.js";
+import { approvalRequirements, recordApproval, validateProductionEvidence } from "./productionEvidence.js";
 
-const base = Object.fromEntries(["tenantBuild", "security", "payrollGl", "performance", "uat"].map((key) => [key, { status: "pending", approvals: [] }]));
+const base = Object.fromEntries(Object.keys(approvalRequirements).map((key) => [key, { status: "pending", approvals: [] }]));
 
 describe("production approval evidence", () => {
   it("rejects empty approval records", () => {
-    expect(validateProductionEvidence(base)).toHaveLength(5);
+    expect(validateProductionEvidence(base)).toHaveLength(10);
   });
 
   it("requires both Payroll and Finance approval for reconciliation", () => {
@@ -24,7 +24,13 @@ describe("production approval evidence", () => {
       ["payrollGl", "Payroll Manager"],
       ["payrollGl", "Finance Approver"],
       ["performance", "Workday Systems Lead"],
-      ["uat", "Payroll Product Owner"]
+      ["uat", "Payroll Product Owner"],
+      ["observability", "Platform Operations Lead"],
+      ["backupRestore", "Platform Data Administrator"],
+      ["secretRotation", "Security Operations Lead"],
+      ["disasterRecovery", "Platform Operations Lead"],
+      ["disasterRecovery", "Payroll Product Owner"],
+      ["penetration", "Application Security Lead"]
     ];
     const complete = approvals.reduce(
       (evidence, [area, role]) => recordApproval(evidence, area, { ...fields, name: `${role} Name`, role }),

@@ -63,7 +63,7 @@ export function validateRuntimeConfig(env = process.env) {
   if (!hasBearer && !hasBasic) errors.push("Workday bearer token or username/password credentials are required");
   if (hasBearer && hasBasic) errors.push("Configure only one Workday authentication method");
 
-  ["WORKDAY_INBOX_TASK_URL", "PUBLIC_APP_URL", "REPORT_DELIVERY_WEBHOOK_URL", "AUDIT_STORE_URL"].forEach((key) => {
+  ["WORKDAY_INBOX_TASK_URL", "PUBLIC_APP_URL", "REPORT_DELIVERY_WEBHOOK_URL", "AUDIT_STORE_URL", "ALERT_WEBHOOK_URL", "ALERT_RUNBOOK_URL"].forEach((key) => {
     if (!isHttpsUrl(env[key])) errors.push(`${key} must be a valid HTTPS URL`);
   });
 
@@ -80,6 +80,35 @@ export function validateRuntimeConfig(env = process.env) {
   const retentionDays = Number(env.AUDIT_RETENTION_DAYS);
   if (!Number.isInteger(retentionDays) || retentionDays < 365) errors.push("AUDIT_RETENTION_DAYS must be at least 365");
   if (!env.AUDIT_BACKUP_POLICY_REFERENCE?.trim()) errors.push("AUDIT_BACKUP_POLICY_REFERENCE is required");
+  if (env.LOG_FORMAT !== "json") errors.push("LOG_FORMAT must be json");
+  if (!env.CENTRAL_LOG_SINK_REFERENCE?.trim()) errors.push("CENTRAL_LOG_SINK_REFERENCE is required");
+  if (!env.MONITORING_SERVICE_REFERENCE?.trim()) errors.push("MONITORING_SERVICE_REFERENCE is required");
+  if (!env.MONITORING_TOKEN || env.MONITORING_TOKEN.length < 32) errors.push("MONITORING_TOKEN must be at least 32 characters");
+  if (!env.ALERT_WEBHOOK_SECRET || env.ALERT_WEBHOOK_SECRET.length < 32) errors.push("ALERT_WEBHOOK_SECRET must be at least 32 characters");
+  const alertTimeout = Number(env.ALERT_WEBHOOK_TIMEOUT_MS ?? 10000);
+  if (!Number.isFinite(alertTimeout) || alertTimeout < 1000) errors.push("ALERT_WEBHOOK_TIMEOUT_MS must be at least 1000");
+  if (!env.SECRET_ROTATION_POLICY_REFERENCE?.trim()) errors.push("SECRET_ROTATION_POLICY_REFERENCE is required");
+  if (!env.DISASTER_RECOVERY_PLAN_REFERENCE?.trim()) errors.push("DISASTER_RECOVERY_PLAN_REFERENCE is required");
+  if (!env.PENETRATION_TEST_POLICY_REFERENCE?.trim()) errors.push("PENETRATION_TEST_POLICY_REFERENCE is required");
+
+  const rto = Number(env.DR_RTO_MINUTES);
+  const rpo = Number(env.DR_RPO_MINUTES);
+  if (!Number.isInteger(rto) || rto < 1) errors.push("DR_RTO_MINUTES must be a positive integer");
+  if (!Number.isInteger(rpo) || rpo < 1) errors.push("DR_RPO_MINUTES must be a positive integer");
+
+  const rotationMaxAgeDays = Number(env.SECRET_ROTATION_MAX_AGE_DAYS ?? 90);
+  const rotatedAt = new Date(env.SECRETS_ROTATED_AT ?? "");
+  const rotationAgeDays = (Date.now() - rotatedAt.getTime()) / 86_400_000;
+  if (!Number.isFinite(rotatedAt.getTime()) || rotationAgeDays < 0 || rotationAgeDays > rotationMaxAgeDays) {
+    errors.push("SECRETS_ROTATED_AT must be a valid timestamp within SECRET_ROTATION_MAX_AGE_DAYS");
+  }
+  if (env.SESSION_SECRET_PREVIOUS && env.SESSION_SECRET_PREVIOUS === env.SESSION_SECRET) errors.push("SESSION_SECRET_PREVIOUS must differ from SESSION_SECRET");
+  if (env.REPORT_DELIVERY_SECRET_PREVIOUS && env.REPORT_DELIVERY_SECRET_PREVIOUS === env.REPORT_DELIVERY_SECRET) {
+    errors.push("REPORT_DELIVERY_SECRET_PREVIOUS must differ from REPORT_DELIVERY_SECRET");
+  }
+  if (env.MONITORING_TOKEN_PREVIOUS && env.MONITORING_TOKEN_PREVIOUS === env.MONITORING_TOKEN) {
+    errors.push("MONITORING_TOKEN_PREVIOUS must differ from MONITORING_TOKEN");
+  }
 
   return errors;
 }
@@ -96,7 +125,8 @@ export function runtimeConfigurationStatus(env = process.env) {
       workday: workdayUrlKeys.every((key) => isHttpsUrl(env[key])),
       inbox: isHttpsUrl(env.WORKDAY_INBOX_TASK_URL),
       delivery: isHttpsUrl(env.REPORT_DELIVERY_WEBHOOK_URL),
-      durableAudit: env.AUDIT_STORE_MODE === "http" && isHttpsUrl(env.AUDIT_STORE_URL)
+      durableAudit: env.AUDIT_STORE_MODE === "http" && isHttpsUrl(env.AUDIT_STORE_URL),
+      observability: env.LOG_FORMAT === "json" && isHttpsUrl(env.ALERT_WEBHOOK_URL) && Boolean(env.MONITORING_TOKEN)
     }
   };
 }

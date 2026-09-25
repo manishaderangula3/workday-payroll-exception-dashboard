@@ -52,6 +52,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Persistent acknowledgement/action audit trail, real Workday time-entry links, and configurable Inbox task creation
 - Fail-closed live configuration validation and durable multi-instance audit API support
 - Saved report links and scheduled Excel delivery with provider and final-status receipts
+- Correlated JSON logs, authenticated operational metrics, alert hooks, rotation overlap, and production operations evidence gates
 - Production evidence gate for tenant validation, security, reconciliation, performance, and UAT approval
 
 ## Interactive Dashboard App
@@ -169,7 +170,7 @@ Backend proxy and authentication adds:
 
 ## Production Status
 
-The application code, automated tests, build, deployment container, and production control adapters are implemented. A live Workday tenant is still an external dependency: release is intentionally blocked until tenant report validation, role/security testing, payroll-to-GL reconciliation, production-volume performance testing, and business UAT are executed and approved. Record genuine approvals using the process in `testing/Production_Approval_Runbook.md`, then run `npm run validate:production`.
+The application code, automated tests, build, deployment container, and production control adapters are implemented. A live Workday tenant and hosting control plane remain external dependencies: release is intentionally blocked until tenant validation, security, reconciliation, performance, UAT, observability, restore, rotation, disaster recovery, and penetration testing are executed and approved. Record genuine approvals using the process in `testing/Production_Approval_Runbook.md`, then run `npm run validate:production`.
 
 Hosted deployment and visual QA adds:
 
@@ -221,6 +222,7 @@ workday-payroll-exception-dashboard/
 |   |-- Real_Time_Data_Integration.md
 |   |-- Backend_Proxy_Authentication.md
 |   |-- Hosting_Deployment_Decision.md
+|   |-- Production_Operations_Runbook.md
 |   |-- Workday_Tenant_Build_Runbook.md
 |   |-- Production_Readiness_Checklist.md
 |   `-- Lessons_Learned.md

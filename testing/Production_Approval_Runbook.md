@@ -13,6 +13,11 @@ The production gate represents executed Workday tenant validation, not documenta
 | Payroll/GL | Payroll Manager and Finance Approver | Signed control-total reconciliation with explained variances |
 | Performance | Workday Systems Lead | Production-volume timings against approved targets |
 | UAT | Payroll Product Owner | Completed UAT results and accepted defect disposition |
+| Observability | Platform Operations Lead | Central-log query, dashboard screenshots, alert-routing test, and on-call ticket |
+| Backup/restore | Platform Data Administrator | Successful restore evidence, integrity checks, retention, and measured recovery point |
+| Secret rotation | Security Operations Lead | Rotation ticket proving current/previous overlap and removal of retired credentials |
+| Disaster recovery | Platform Operations Lead and Payroll Product Owner | Exercise timeline, measured RTO/RPO, validation results, and business acceptance |
+| Penetration test | Application Security Lead | Independent report and evidence that Critical/High findings are resolved or formally accepted |
 
 ## Recording Evidence
 

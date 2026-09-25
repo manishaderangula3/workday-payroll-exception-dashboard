@@ -3,7 +3,12 @@ export const approvalRequirements = {
   security: { label: "role and row-level security testing", roles: ["Workday Security Administrator"] },
   payrollGl: { label: "payroll-to-GL reconciliation", roles: ["Payroll Manager", "Finance Approver"] },
   performance: { label: "production-volume performance testing", roles: ["Workday Systems Lead"] },
-  uat: { label: "business UAT sign-off", roles: ["Payroll Product Owner"] }
+  uat: { label: "business UAT sign-off", roles: ["Payroll Product Owner"] },
+  observability: { label: "central logging, monitoring, and alert validation", roles: ["Platform Operations Lead"] },
+  backupRestore: { label: "backup and restore validation", roles: ["Platform Data Administrator"] },
+  secretRotation: { label: "production secret rotation drill", roles: ["Security Operations Lead"] },
+  disasterRecovery: { label: "disaster recovery exercise", roles: ["Platform Operations Lead", "Payroll Product Owner"] },
+  penetration: { label: "independent penetration test and remediation review", roles: ["Application Security Lead"] }
 };
 
 function validApproval(approval, now) {

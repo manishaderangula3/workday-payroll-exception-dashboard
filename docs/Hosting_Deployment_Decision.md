@@ -20,6 +20,8 @@ This is the selected production path because the dashboard now includes Workday 
 | Workday traffic | Backend-only outbound HTTPS to Workday RaaS/API endpoints |
 | Credentials | Runtime secret store only, never frontend code |
 | Audit storage | Durable HTTPS audit API backed by an approved database/platform |
+| Logs and monitoring | Structured stdout/stderr collection, authenticated `/api/metrics`, and hosted health/readiness probes |
+| Alerting | Approved HTTPS incident webhook connected to the payroll systems on-call route |
 
 ## Recommended Platforms
 
@@ -64,6 +66,9 @@ Workday RaaS/API Reports
 | `WORKDAY_*_URL` | Production yes | RaaS/API report endpoints for workers, payroll, time, deductions, and tax. |
 | `WORKDAY_BEARER_TOKEN` or `WORKDAY_USERNAME`/`WORKDAY_PASSWORD` | Production yes | Backend-only Workday authentication. |
 | `AUDIT_STORE_MODE=http` and `AUDIT_STORE_*` | Live yes | Sends audit events to durable shared storage; local JSONL is not accepted for live deployments. |
+| `MONITORING_TOKEN` and observability references | Live yes | Protects metrics and identifies the approved central log and monitoring resources. |
+| `ALERT_WEBHOOK_*` and `ALERT_RUNBOOK_URL` | Live yes | Routes backend and scheduled-delivery failures to the operations platform. |
+| Rotation, DR, and penetration policy settings | Live yes | Makes operational ownership, RTO/RPO, credential age, and security-test policy explicit. |
 
 ## Container Deployment
 
@@ -86,6 +91,10 @@ Before routing traffic, run `npm run validate:config` with the deployment's reso
 | Configure secrets | IT/Security | Required runtime variables are present in the host secret store. |
 | Validate runtime configuration | IT/Security | `npm run validate:config` passes for `DEPLOYMENT_PROFILE=live`. |
 | Validate durable audit | IT/Security | Append/query tests pass, retention is configured, and backup/restore evidence is approved. |
+| Validate observability | Platform Operations | Correlated logs, metrics, probes, and test alerts are visible in the approved services. |
+| Exercise recovery | Platform Operations/Payroll | Backup restore and DR exercise meet approved RTO/RPO. |
+| Rotate credentials | Security Operations | Rotation succeeds and retired credentials are rejected. |
+| Complete penetration test | Application Security | Independent test is complete and Critical/High findings are remediated or accepted. |
 | Configure Workday reports | Workday Reporting Analyst | RaaS/API URLs return expected datasets to the backend. |
 | Validate authentication | HRIS/IT | Users can sign in and sessions use HTTP-only secure cookies. |
 | Validate role security | Payroll/HRIS/Security | Manager, HR Partner, Finance, and Payroll Admin scopes return only authorized rows. |
@@ -96,6 +105,8 @@ Before routing traffic, run `npm run validate:config` with the deployment's reso
 ## Rollback Plan
 
 Keep the prior deployed image or service revision available. If authentication, Workday connectivity, role filtering, or dashboard rendering fails after release, roll back to the last verified image and disable scheduled Workday data refresh until the defect is corrected.
+
+Detailed monitoring, backup, rotation, recovery, and penetration-test procedures are in `docs/Production_Operations_Runbook.md`.
 
 ## Final Decision
 

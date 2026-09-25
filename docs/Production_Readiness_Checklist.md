@@ -39,12 +39,15 @@
 | Payroll/GL reconciliation plan | Complete | `testing/Payroll_GL_Reconciliation_Plan.md` |
 | Performance test plan | Complete | `testing/Performance_Testing_Plan.md` |
 | UAT sign-off packet | Complete | `testing/UAT_Signoff_Packet.md` |
-| Production evidence gate | Complete | `npm run validate:production` blocks release until all five external approvals are recorded. |
+| Production evidence gate | Complete | `npm run validate:production` blocks release until all ten tenant, business, and operations approval areas are recorded. |
 | Runtime configuration gate | Complete | `npm run validate:config` and server startup reject incomplete live SSO, Workday, action, delivery, secret, or audit settings. |
+| Structured operations telemetry | Complete in code | Redacted JSON request logs, correlation IDs, authenticated metrics, health/readiness probes, and alert webhook adapter. |
+| Rotation overlap | Complete in code | Current and previous session/delivery secrets are accepted during a controlled rotation window. |
+| Production operations execution | External evidence required | Central sink, dashboards, paging, restore test, rotation drill, DR exercise, and penetration test require the hosting/security teams. |
 
 ## Enforced Release Gate
 
-Run `npm run validate:production` before deployment. The command intentionally fails while `testing/production-evidence.json` contains pending items. Each approval requires a tenant/environment, change ticket, evidence reference, timestamped authorized approver, and approved status. Payroll/GL reconciliation requires both Payroll Manager and Finance Approver sign-off. Use `npm run evidence:record` only after the approver has reviewed the evidence; see `testing/Production_Approval_Runbook.md`.
+Run `npm run validate:production` before deployment. The command intentionally fails while `testing/production-evidence.json` contains pending items. Each approval requires a tenant/environment, change ticket, evidence reference, timestamped authorized approver, and approved status. Payroll/GL reconciliation and disaster recovery each require two-role sign-off. Use `npm run evidence:record` only after the approver has reviewed the evidence; see `testing/Production_Approval_Runbook.md`.
 
 Run `npm run validate:config` in the target hosting environment after its secret manager has resolved settings. For real payroll data, set `DEPLOYMENT_PROFILE=live`; the backend will not listen unless Entra, every Workday dataset, Inbox action, delivery webhook, and durable audit configuration passes validation. This gate validates configuration presence and transport security, while the production evidence gate records actual tenant connectivity and business approval.
 
@@ -62,6 +65,7 @@ Run `npm run validate:config` in the target hosting environment after its secret
 | Performance test large populations | Workday Reporting Lead | `testing/Performance_Testing_Plan.md` | Validate target load time with realistic worker and payroll result volume. |
 | Complete UAT sign-off | Payroll Product Owner | `testing/UAT_Signoff_Packet.md` | Confirm business acceptance and documented defect disposition. |
 | Approve production migration | Payroll, HRIS, IT Security | `testing/UAT_Signoff_Packet.md` | Confirm no open Critical defects and approved plan for High defects. |
+| Validate production operations | Platform Operations, Security, Payroll | `docs/Production_Operations_Runbook.md` | Validate central telemetry, alerting, restore, rotation, DR, and independent penetration-test evidence. |
 
 ## Production Data Rules
 

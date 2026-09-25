@@ -134,7 +134,7 @@ export async function sendScheduledDelivery(data, options = {}) {
   };
 }
 
-export function startScheduledDelivery(loadData, onDelivered) {
+export function startScheduledDelivery(loadData, onDelivered, onError) {
   const intervalMinutes = Number(process.env.REPORT_DELIVERY_INTERVAL_MINUTES ?? 0);
   if (!process.env.REPORT_DELIVERY_WEBHOOK_URL || !Number.isFinite(intervalMinutes) || intervalMinutes < 15) return null;
 
@@ -144,7 +144,8 @@ export function startScheduledDelivery(loadData, onDelivered) {
       const delivery = await sendScheduledDelivery(data);
       await onDelivered?.(delivery);
     } catch (error) {
-      console.error("Scheduled report delivery failed:", error instanceof Error ? error.message : error);
+      if (onError) await onError(error);
+      else console.error("Scheduled report delivery failed:", error instanceof Error ? error.message : error);
     }
   }, intervalMinutes * 60_000);
   timer.unref();
