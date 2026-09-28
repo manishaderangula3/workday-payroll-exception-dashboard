@@ -15,6 +15,33 @@ This plan validates that the Payroll Exception Dashboard and Workday reports per
 | Excel export | 30 seconds or less | 60 seconds |
 | Backend proxy data load | 10 seconds or less | 20 seconds |
 
+## Frontend Network Baseline
+
+The repository includes an automated Chromium test using 150 ms latency, 1.6 Mbps download, 750 Kbps upload, and a disabled browser cache. Run it locally with `npm run test:performance`. To measure the deployed environment, set `PERFORMANCE_BASE_URL` to the approved HTTPS deployment before running the same command.
+
+| Measurement | September 28, 2026 Baseline | Automated Budget |
+| --- | --- | --- |
+| First Contentful Paint | 1,924 ms | <= 5,000 ms |
+| Load event | 1,695 ms | <= 8,000 ms |
+| Initial compressed JavaScript | 211,530 bytes | <= 300,000 bytes |
+| Excel chunk requested during initial load | No | Must remain No |
+| Lazy Excel transfer | 271,327 bytes compressed | <= 350,000 bytes |
+| Lazy Excel network duration | 1,557 ms | Informational |
+| Export ready for download | 1,891 ms | <= 12,000 ms |
+
+The Node server now gzip-compresses text assets and gives fingerprinted `/assets` files a one-year immutable cache policy. The raw chart and Excel chunk sizes remain larger because of Recharts and ExcelJS, but the measured network transfers meet the current budgets. The production run remains required because CDN/proxy behavior, TLS, geographic latency, and enterprise network controls are external to the local simulation.
+
+## Bundle Budgets
+
+`npm run build` now runs `scripts/checkBundleBudget.mjs` and fails when a bundle exceeds its approved raw or gzip budget.
+
+| Chunk | Raw Budget | Gzip Budget | Current Gzip Size |
+| --- | --- | --- | --- |
+| Application | 230 KB | 60 KB | 51.5 KB |
+| Charts | 600 KB | 180 KB | 160.0 KB |
+| ExcelJS, lazy | 1,000 KB | 300 KB | 271.3 KB |
+| Initial JavaScript total | N/A | 250 KB | 211.5 KB |
+
 ## Test Data Volumes
 
 | Dataset Size | Worker Count | Pay Periods | Purpose |
@@ -82,4 +109,3 @@ Performance testing is complete when:
 - Export performance is acceptable for Payroll and Finance users.
 - No timeout occurs for the approved production population.
 - Any performance limitation is documented in the release notes and accepted by the Payroll Product Owner.
-

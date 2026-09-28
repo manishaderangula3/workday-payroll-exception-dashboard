@@ -33,6 +33,7 @@
 | Scheduled distribution | Complete in code; configuration required | Interval scheduler attaches a server-generated readiness workbook, requires a provider receipt, and audits idempotent delivered/failed/bounced callbacks. |
 | Hosted deployment decision | Complete | Full-stack Node.js hosting selected; see `docs/Hosting_Deployment_Decision.md`. |
 | Browser visual regression tests | Complete | Playwright desktop, mobile, and proxy role-scope screenshots are configured. |
+| Frontend performance budgets | Complete in code | Build-time raw/gzip limits plus throttled Playwright measurements for initial load and lazy Excel export. |
 | Documentation linked | Complete | README links build plan, QA audit, and real-time data integration guide. |
 | Tenant build runbook | Complete | `docs/Workday_Tenant_Build_Runbook.md` |
 | Production security test plan | Complete | `testing/Security_Testing_Plan.md` |

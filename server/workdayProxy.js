@@ -3,6 +3,7 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createGzip } from "node:zlib";
 import { demoDashboardData } from "./demoData.js";
 import { applyRoleSecurity, publicUser } from "./rbac.js";
 import { fetchWorkdayPages, normalizeWorkdayDataset } from "./workdayData.js";
@@ -773,6 +774,30 @@ function contentType(filePath) {
   return "application/octet-stream";
 }
 
+function isCompressible(filePath) {
+  return [".html", ".js", ".css", ".svg", ".md"].includes(extname(filePath));
+}
+
+function shouldCompress(request, filePath) {
+  const acceptsEncoding = String(request.headers["accept-encoding"] ?? "");
+  return /\bgzip\b/i.test(acceptsEncoding) && isCompressible(filePath);
+}
+
+function serveStaticFile(request, response, filePath) {
+  const compressed = shouldCompress(request, filePath);
+  const immutable = isPathInside(resolve(distPath, "assets"), filePath);
+  response.writeHead(200, {
+    "Cache-Control": immutable ? "public, max-age=31536000, immutable" : "no-cache",
+    "Content-Type": contentType(filePath),
+    ...(compressed ? { "Content-Encoding": "gzip" } : {}),
+    ...(isCompressible(filePath) ? { Vary: "Accept-Encoding" } : {}),
+    ...securityHeaders()
+  });
+  const stream = createReadStream(filePath);
+  if (compressed) stream.pipe(createGzip({ level: 6 })).pipe(response);
+  else stream.pipe(response);
+}
+
 function isPathInside(parentPath, childPath) {
   const pathDifference = relative(parentPath, childPath);
   return pathDifference === "" || (!pathDifference.startsWith("..") && !isAbsolute(pathDifference));
@@ -797,7 +822,7 @@ function resolveStaticFilePath(pathname) {
   return filePath;
 }
 
-function serveStatic(response, url) {
+function serveStatic(request, response, url) {
   const filePath = resolveStaticFilePath(url.pathname);
 
   if (!filePath) {
@@ -808,19 +833,11 @@ function serveStatic(response, url) {
       return;
     }
 
-    response.writeHead(200, {
-      "Content-Type": "text/html; charset=utf-8",
-      ...securityHeaders()
-    });
-    createReadStream(fallbackPath).pipe(response);
+    serveStaticFile(request, response, fallbackPath);
     return;
   }
 
-  response.writeHead(200, {
-    "Content-Type": contentType(filePath),
-    ...securityHeaders()
-  });
-  createReadStream(filePath).pipe(response);
+  serveStaticFile(request, response, filePath);
 }
 
 const server = createServer(async (request, response) => {
@@ -851,7 +868,7 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    serveStatic(response, url);
+    serveStatic(request, response, url);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected server error";
 
@@ -894,4 +911,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   });
 }
 
-export { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, server, verifyPassword };
+export { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, server, shouldCompress, verifyPassword };

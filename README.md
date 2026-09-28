@@ -53,6 +53,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Fail-closed live configuration validation and durable multi-instance audit API support
 - Saved report links and scheduled Excel delivery with provider and final-status receipts
 - Correlated JSON logs, authenticated operational metrics, alert hooks, rotation overlap, and production operations evidence gates
+- Gzip/immutable asset delivery, enforced bundle budgets, and throttled browser performance measurements
 - Production evidence gate for tenant validation, security, reconciliation, performance, and UAT approval
 
 ## Interactive Dashboard App
@@ -423,6 +424,13 @@ Run browser visual regression tests:
 
 ```bash
 npm run test:visual
+```
+
+Run bundle and throttled network performance checks:
+
+```bash
+npm run check:bundle
+npm run test:performance
 ```
 
 Refresh approved screenshot baselines after intentional visual changes:

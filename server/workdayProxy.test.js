@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, verifyPassword } from "./workdayProxy.js";
+import { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, shouldCompress, verifyPassword } from "./workdayProxy.js";
 
 function requestFromText(text) {
   return {
@@ -19,6 +19,12 @@ describe("backend proxy hardening", () => {
   it("rejects static paths that escape the built asset directory", () => {
     expect(resolveStaticFilePath("/../package.json")).toBeNull();
     expect(resolveStaticFilePath("/%2e%2e/package.json")).toBeNull();
+  });
+
+  it("compresses text assets only when the client accepts gzip", () => {
+    expect(shouldCompress({ headers: { "accept-encoding": "br, gzip" } }, "dist/assets/app.js")).toBe(true);
+    expect(shouldCompress({ headers: { "accept-encoding": "gzip" } }, "dist/report.xlsx")).toBe(false);
+    expect(shouldCompress({ headers: {} }, "dist/assets/app.js")).toBe(false);
   });
 
   it("parses small JSON request bodies", async () => {
