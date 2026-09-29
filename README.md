@@ -50,7 +50,7 @@ Payroll managers often lack a single, reliable view of payroll exceptions before
 - Microsoft Entra Easy Auth integration path with app-role mapping and backend row security
 - Server-generated proxy-mode Excel exports with permission checks and audit events
 - Persistent acknowledgement/action audit trail, real Workday time-entry links, and configurable Inbox task creation
-- Fail-closed live configuration validation and durable multi-instance audit API support
+- Live configuration validation and durable multi-instance audit API support
 - Saved report links and scheduled Excel delivery with provider and final-status receipts
 - Correlated JSON logs, authenticated operational metrics, alert hooks, rotation overlap, and production operations evidence gates
 - Gzip/immutable asset delivery, enforced bundle budgets, and throttled browser performance measurements
@@ -171,7 +171,33 @@ Backend proxy and authentication adds:
 
 ## Production Status
 
-The application code, automated tests, build, deployment container, and production control adapters are implemented. A live Workday tenant and hosting control plane remain external dependencies: release is intentionally blocked until tenant validation, security, reconciliation, performance, UAT, observability, restore, rotation, disaster recovery, and penetration testing are executed and approved. Record genuine approvals using the process in `testing/Production_Approval_Runbook.md`, then run `npm run validate:production`.
+The application code, automated tests, build, deployment container, and production control adapters are implemented. The project is portfolio-ready but is not approved for live payroll data. Release remains blocked by the code-remediation items below and by external tenant validation, security testing, payroll/GL reconciliation, performance testing, UAT, observability, restore, rotation, disaster recovery, and penetration-testing approvals. Record genuine approvals using the process in `testing/Production_Approval_Runbook.md`, then run `npm run validate:production`.
+
+### Current Code Audit
+
+The latest repository review was completed on September 29, 2026. It was read-only and produced the following baseline:
+
+| Check | Result |
+|---|---|
+| Unit tests | 68 of 68 passed across 16 test files |
+| Production build | Passed, including TypeScript compilation and bundle budgets |
+| npm dependency audit | 0 known vulnerabilities |
+| Git working tree before this documentation update | Clean |
+
+The following items must be remediated and retested before production deployment:
+
+| Priority | Required remediation |
+|---|---|
+| High | Make RBAC fail closed by rejecting unknown role values and resolving only own properties from Entra role mappings. |
+| High | Add explicit role/capability checks, idempotency protection, and rate limits to acknowledgement, Workday Inbox, and manual delivery actions. |
+| High | Upgrade the Docker runtime from end-of-life Node.js 20 to a supported LTS release. |
+| Medium | Run the runtime container as a non-root user and add a `.dockerignore` that excludes secrets, Git metadata, local audit data, dependencies, and test artifacts. |
+| Medium | Trust forwarded client addresses only behind an approved proxy and place a bound on failed-login tracking. |
+| Medium | Enforce response-byte and total-row limits for Workday and durable audit API responses. |
+| Medium | Validate `SECRET_ROTATION_MAX_AGE_DAYS` as a positive finite integer. |
+| Medium | Add HTTP-level authorization and replay tests for every state-changing backend endpoint. |
+
+Code cleanup identified during the same review is intentionally separate from security remediation: remove the unused CSV download implementation and unused fixture barrel exports, share the duplicated server-side missing-date calculation, and move browser-only packages out of runtime production dependencies. Client and server workbook generation remain separate by design because proxy-mode exports must be rebuilt from server-scoped data.
 
 Hosted deployment and visual QA adds:
 
@@ -443,6 +469,7 @@ npm run test:visual:update
 
 Before implementing this design in a live Workday tenant:
 
+- Resolve every open item in the Current Code Audit section and rerun the unit, build, dependency, security, and browser test suites.
 - Set `DEPLOYMENT_PROFILE=live`; configure Entra Easy Auth, all Workday endpoints, Inbox actions, delivery, and durable audit storage through the host secret manager.
 - Require `/api/readiness` to return `200` before routing traffic.
 - Validate all data sources in the target tenant.
