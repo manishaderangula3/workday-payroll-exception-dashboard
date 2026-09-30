@@ -21,6 +21,7 @@ interface WorkerDrillDownProps {
   data: DashboardData;
   employeeId: string;
   filters: DashboardFilters;
+  canAcknowledge: boolean;
   canExport: boolean;
   canCreateWorkdayTask: boolean;
   useServerExport: boolean;
@@ -40,6 +41,7 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 
 export function WorkerDrillDown({
   employeeId,
+  canAcknowledge,
   canExport,
   canCreateWorkdayTask,
   data,
@@ -225,15 +227,17 @@ export function WorkerDrillDown({
                 Create Workday Inbox Task
               </button>
             ) : null}
-            <button
-              className="secondary-action"
-              disabled={isAcknowledged}
-              onClick={() => void handleAcknowledge()}
-              type="button"
-            >
-              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              Acknowledge Issue
-            </button>
+            {canAcknowledge ? (
+              <button
+                className="secondary-action"
+                disabled={isAcknowledged}
+                onClick={() => void handleAcknowledge()}
+                type="button"
+              >
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                Acknowledge Issue
+              </button>
+            ) : null}
             {canExport ? (
               <button className="secondary-action" onClick={() => void handleExportSnapshot()} type="button">
                 <Download className="h-4 w-4" aria-hidden="true" />

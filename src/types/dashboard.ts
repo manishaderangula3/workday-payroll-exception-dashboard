@@ -203,8 +203,11 @@ export interface AuthenticatedUser {
   allowedDepartments: string[];
   allowedCompanies: string[];
   allowedPayGroups: string[];
+  canAcknowledge: boolean;
+  canCreateInboxTask: boolean;
   canViewWorkerDetail: boolean;
   canExport: boolean;
+  canTriggerDelivery: boolean;
 }
 
 export type UploadDatasetKey = "workers" | "payrollResults" | "timeEntries" | "deductionResults" | "taxResults";

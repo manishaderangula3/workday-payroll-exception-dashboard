@@ -49,6 +49,40 @@ test.describe("@functional production controls", () => {
     expect((await response.body()).subarray(0, 2).toString()).toBe("PK");
   });
 
+  test("finance users cannot call payroll workflow actions directly", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Username").fill("finance.analyst");
+    await page.getByLabel("Password").fill("FinanceDemo123!");
+    await page.getByRole("button", { name: "Sign In" }).click();
+    await page.getByRole("button", { name: "Load Proxy Data" }).click();
+
+    const acknowledgement = await page.request.post("/api/acknowledgements", {
+      data: { employeeId: "W-2001", payPeriod: "2026-09-15 Semi-Monthly" }
+    });
+    const inboxTask = await page.request.post("/api/actions/workday-inbox", {
+      data: { employeeId: "W-2001", payPeriod: "2026-09-15 Semi-Monthly" }
+    });
+
+    expect(acknowledgement.status()).toBe(403);
+    expect(inboxTask.status()).toBe(403);
+  });
+
+  test("duplicate acknowledgements reuse the existing audit event", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Username").fill("payroll.admin");
+    await page.getByLabel("Password").fill("PayrollDemo123!");
+    await page.getByRole("button", { name: "Sign In" }).click();
+    await page.getByRole("button", { name: "Load Proxy Data" }).click();
+    const data = { employeeId: "W-2001", payPeriod: `security-test-${Date.now()}` };
+
+    const first = await page.request.post("/api/acknowledgements", { data });
+    const second = await page.request.post("/api/acknowledgements", { data });
+
+    expect(first.status()).toBe(201);
+    expect(second.status()).toBe(200);
+    expect((await second.json()).duplicate).toBe(true);
+  });
+
   test("report specifications are included in the production bundle", async ({ request }) => {
     const response = await request.get("/reports/Payroll_Cost_Report.md");
     expect(response.ok()).toBeTruthy();

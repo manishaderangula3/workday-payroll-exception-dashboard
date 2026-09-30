@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, shouldCompress, verifyPassword } from "./workdayProxy.js";
+import { getAzureEasyAuthUser, getUsers, isActionRateLimited, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, shouldCompress, verifyPassword } from "./workdayProxy.js";
 
 function requestFromText(text) {
   return {
@@ -144,5 +144,38 @@ describe("backend proxy hardening", () => {
     };
     const encoded = Buffer.from(JSON.stringify(principal)).toString("base64");
     expect(getAzureEasyAuthUser({ headers: { "x-ms-client-principal": encoded } })).toBeNull();
+  });
+
+  it("does not treat inherited mapping properties as Entra roles", () => {
+    const encoded = Buffer.from(JSON.stringify({
+      userDetails: "unknown@example.com",
+      userRoles: ["constructor"],
+      claims: []
+    })).toString("base64");
+    expect(getAzureEasyAuthUser({ headers: { "x-ms-client-principal": encoded } })).toBeNull();
+  });
+
+  it("rejects configured Entra mappings to unsupported roles", () => {
+    const originalMappings = process.env.ENTRA_ROLE_MAPPINGS_JSON;
+    process.env.ENTRA_ROLE_MAPPINGS_JSON = '{"Custom.Role":"typo_role"}';
+    const encoded = Buffer.from(JSON.stringify({
+      userDetails: "custom@example.com",
+      userRoles: ["Custom.Role"],
+      claims: []
+    })).toString("base64");
+    try {
+      expect(getAzureEasyAuthUser({ headers: { "x-ms-client-principal": encoded } })).toBeNull();
+    } finally {
+      if (typeof originalMappings === "undefined") delete process.env.ENTRA_ROLE_MAPPINGS_JSON;
+      else process.env.ENTRA_ROLE_MAPPINGS_JSON = originalMappings;
+    }
+  });
+
+  it("rate-limits repeated state-changing actions within the configured window", () => {
+    const key = `test:${Date.now()}`;
+    expect(isActionRateLimited(key, 2, 1000, 100)).toBe(false);
+    expect(isActionRateLimited(key, 2, 1000, 200)).toBe(false);
+    expect(isActionRateLimited(key, 2, 1000, 300)).toBe(true);
+    expect(isActionRateLimited(key, 2, 1000, 1200)).toBe(false);
   });
 });

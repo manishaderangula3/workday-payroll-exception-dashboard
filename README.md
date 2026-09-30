@@ -175,22 +175,28 @@ The application code, automated tests, build, deployment container, and producti
 
 ### Current Code Audit
 
-The latest repository review was completed on September 29, 2026. It was read-only and produced the following baseline:
+The latest repository remediation review was completed on September 30, 2026 and produced the following baseline:
 
 | Check | Result |
 |---|---|
-| Unit tests | 68 of 68 passed across 16 test files |
+| Unit tests | 74 of 74 passed across 16 test files |
+| Functional browser security tests | 5 of 5 passed |
 | Production build | Passed, including TypeScript compilation and bundle budgets |
 | npm dependency audit | 0 known vulnerabilities |
-| Git working tree before this documentation update | Clean |
+| High-priority audit findings | 3 remediated and regression-tested |
 
-The following items must be remediated and retested before production deployment:
+Completed high-priority remediation:
+
+| Finding | Resolution |
+|---|---|
+| RBAC failed open for unknown roles | Unknown roles and inherited mapping properties are rejected; live role mappings accept only supported application roles. |
+| Workflow actions lacked capability and replay controls | Server capabilities, UI visibility, duplicate-event reuse, deterministic Inbox idempotency keys, and per-user action rate limits are enforced. |
+| Docker used end-of-life Node.js 20 | Build and runtime stages now use Node.js 24 LTS. |
+
+The following previously identified items remain before production deployment:
 
 | Priority | Required remediation |
 |---|---|
-| High | Make RBAC fail closed by rejecting unknown role values and resolving only own properties from Entra role mappings. |
-| High | Add explicit role/capability checks, idempotency protection, and rate limits to acknowledgement, Workday Inbox, and manual delivery actions. |
-| High | Upgrade the Docker runtime from end-of-life Node.js 20 to a supported LTS release. |
 | Medium | Run the runtime container as a non-root user and add a `.dockerignore` that excludes secrets, Git metadata, local audit data, dependencies, and test artifacts. |
 | Medium | Trust forwarded client addresses only behind an approved proxy and place a bound on failed-login tracking. |
 | Medium | Enforce response-byte and total-row limits for Workday and durable audit API responses. |

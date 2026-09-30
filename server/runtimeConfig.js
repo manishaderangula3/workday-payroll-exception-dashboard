@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { isSupportedRole } from "./rbac.js";
 
 const workdayUrlKeys = [
   "WORKDAY_WORKERS_URL",
@@ -28,10 +29,14 @@ function isHttpsUrl(value) {
   }
 }
 
-function isObjectJson(value) {
+function isRoleMappingJson(value) {
   try {
     const parsed = JSON.parse(value);
-    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed) && Object.keys(parsed).length > 0;
+    return parsed !== null &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed) &&
+      Object.keys(parsed).length > 0 &&
+      Object.values(parsed).every(isSupportedRole);
   } catch {
     return false;
   }
@@ -52,7 +57,9 @@ export function validateRuntimeConfig(env = process.env) {
   if (!env.SESSION_SECRET || env.SESSION_SECRET.length < 32 || env.SESSION_SECRET.includes("change-me")) {
     errors.push("SESSION_SECRET must be a secret-store value of at least 32 characters");
   }
-  if (!isObjectJson(env.ENTRA_ROLE_MAPPINGS_JSON)) errors.push("ENTRA_ROLE_MAPPINGS_JSON must be a non-empty JSON object");
+  if (!isRoleMappingJson(env.ENTRA_ROLE_MAPPINGS_JSON)) {
+    errors.push("ENTRA_ROLE_MAPPINGS_JSON must map Entra roles to supported security roles");
+  }
 
   workdayUrlKeys.forEach((key) => {
     if (!isHttpsUrl(env[key])) errors.push(`${key} must be a valid HTTPS URL`);

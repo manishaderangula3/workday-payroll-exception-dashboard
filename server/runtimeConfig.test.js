@@ -62,4 +62,12 @@ describe("runtime configuration", () => {
       "DEPLOYMENT_PROFILE must be portfolio or live in production"
     ]);
   });
+
+  it("rejects Entra mappings to unknown application roles", () => {
+    const config = liveConfig();
+    config.ENTRA_ROLE_MAPPINGS_JSON = '{"Payroll.Admin":"typo_role"}';
+    expect(validateRuntimeConfig(config)).toContain(
+      "ENTRA_ROLE_MAPPINGS_JSON must map Entra roles to supported security roles"
+    );
+  });
 });

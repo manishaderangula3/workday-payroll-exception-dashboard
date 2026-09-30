@@ -18,12 +18,16 @@ interface DashboardShellProps {
   isRefreshing: boolean;
   onClearFilters: () => void;
   thresholds: DashboardThresholds;
+  canAcknowledge: boolean;
+  canCreateWorkdayTask: boolean;
   canExport: boolean;
   dataSourceMode: DataSourceMode;
 }
 
 export function DashboardShell({
   activeTab,
+  canAcknowledge,
+  canCreateWorkdayTask,
   canExport,
   data,
   dataSourceMode,
@@ -140,8 +144,9 @@ export function DashboardShell({
         {selectedEmployeeId ? (
           <WorkerDrillDown
             employeeId={selectedEmployeeId}
+            canAcknowledge={canAcknowledge}
             canExport={canExport}
-            canCreateWorkdayTask={dataSourceMode === "proxy"}
+            canCreateWorkdayTask={canCreateWorkdayTask}
             data={data}
             filters={filters}
             isAcknowledged={acknowledgedEmployeeIds.has(selectedEmployeeId)}

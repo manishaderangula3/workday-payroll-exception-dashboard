@@ -1,11 +1,11 @@
-import { createHmac, pbkdf2Sync, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, pbkdf2Sync, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createGzip } from "node:zlib";
 import { demoDashboardData } from "./demoData.js";
-import { applyRoleSecurity, publicUser } from "./rbac.js";
+import { applyRoleSecurity, isSupportedRole, publicUser } from "./rbac.js";
 import { fetchWorkdayPages, normalizeWorkdayDataset } from "./workdayData.js";
 import { appendAuditEvent, readAuditEvents } from "./auditStore.js";
 import { sendScheduledDelivery, startScheduledDelivery } from "./scheduledDelivery.js";
@@ -31,6 +31,7 @@ const workdayFetchTimeoutMs =
 const maxFailedLoginAttempts = 5;
 const loginThrottleWindowMs = 15 * 60 * 1000;
 const failedLoginAttempts = new Map();
+const actionRateLimits = new Map();
 const authMode = process.env.AUTH_MODE ?? "local";
 
 if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
@@ -112,8 +113,8 @@ function forbidden(response, error = "You are not authorized to perform this act
   jsonResponse(response, 403, { error });
 }
 
-function tooManyRequests(response) {
-  jsonResponse(response, 429, { error: "Too many failed sign-in attempts. Try again later." });
+function tooManyRequests(response, error = "Too many failed sign-in attempts. Try again later.") {
+  jsonResponse(response, 429, { error });
 }
 
 function secureValueMatches(actual, expected) {
@@ -239,23 +240,26 @@ function getUsers() {
       throw new Error("AUTH_USERS_JSON must be an array of users.");
     }
 
-    return users.map(({ password, ...user }) => ({
-      ...user,
-      passwordHash:
-        user.passwordHash ??
-        (() => {
-          if (process.env.NODE_ENV === "production") {
-            throw new Error("AUTH_USERS_JSON must use passwordHash values in production.");
-          }
+    return users.map(({ password, ...user }) => {
+      if (!isSupportedRole(user.role)) throw new Error("AUTH_USERS_JSON contains an unsupported security role.");
+      return {
+        ...user,
+        passwordHash:
+          user.passwordHash ??
+          (() => {
+            if (process.env.NODE_ENV === "production") {
+              throw new Error("AUTH_USERS_JSON must use passwordHash values in production.");
+            }
 
-          if (!password) {
-            throw new Error("AUTH_USERS_JSON users must provide passwordHash or password.");
-          }
+            if (!password) {
+              throw new Error("AUTH_USERS_JSON users must provide passwordHash or password.");
+            }
 
-          return passwordHash(password);
-        })(),
-      password: undefined
-    }));
+            return passwordHash(password);
+          })(),
+        password: undefined
+      };
+    });
   }
 
   return demoUsers.map(({ password, ...user }) => ({
@@ -302,6 +306,18 @@ function recordFailedLogin(key) {
 
 function clearFailedLogin(key) {
   failedLoginAttempts.delete(key);
+}
+
+function isActionRateLimited(key, limit, windowMs = 15 * 60 * 1000, now = Date.now()) {
+  const current = actionRateLimits.get(key);
+  if (!current || now >= current.resetAt) {
+    if (actionRateLimits.size >= 5000) actionRateLimits.delete(actionRateLimits.keys().next().value);
+    actionRateLimits.set(key, { count: 1, resetAt: now + windowMs });
+    return false;
+  }
+  if (current.count >= limit) return true;
+  current.count += 1;
+  return false;
 }
 
 function findAuthenticatedUser(request) {
@@ -353,11 +369,19 @@ function getAzureEasyAuthUser(request) {
   const mappings = process.env.ENTRA_ROLE_MAPPINGS_JSON
     ? JSON.parse(process.env.ENTRA_ROLE_MAPPINGS_JSON)
     : defaultMappings;
-  const mappedRole = roles.map((role) => mappings[role]).find(Boolean);
+  const mappedRole = roles
+    .map((role) => Object.hasOwn(mappings, role) ? mappings[role] : undefined)
+    .find(isSupportedRole);
   if (!username || !mappedRole) return null;
 
   const scopes = process.env.ENTRA_USER_SCOPES_JSON ? JSON.parse(process.env.ENTRA_USER_SCOPES_JSON) : {};
-  const userScope = scopes[username] ?? {};
+  if (!scopes || typeof scopes !== "object" || Array.isArray(scopes)) return null;
+  const userScope = Object.hasOwn(scopes, username) ? scopes[username] : {};
+  if (!userScope || typeof userScope !== "object" || Array.isArray(userScope)) return null;
+  const scopeValues = [userScope.allowedDepartments, userScope.allowedCompanies, userScope.allowedPayGroups];
+  if (scopeValues.some((scope) => typeof scope !== "undefined" && (!Array.isArray(scope) || scope.some((item) => typeof item !== "string")))) {
+    return null;
+  }
   if (mappedRole === "department_manager" && (!Array.isArray(userScope.allowedDepartments) || userScope.allowedDepartments.length === 0)) {
     return null;
   }
@@ -649,6 +673,8 @@ async function handleApi(request, response, url) {
   if (request.method === "POST" && url.pathname === "/api/acknowledgements") {
     const user = findAuthenticatedUser(request);
     if (!user) return unauthorized(response);
+    const authorizedUser = publicUser(user);
+    if (!authorizedUser.canAcknowledge) return forbidden(response, "Acknowledgement permission is required");
     const body = await readJsonBody(request);
     const employeeId = String(body.employeeId ?? "").trim();
     const payPeriod = String(body.payPeriod ?? "").trim();
@@ -656,6 +682,11 @@ async function handleApi(request, response, url) {
     const { data } = await loadWorkdayData();
     const scopedData = applyRoleSecurity(data, user);
     if (!scopedData.workers.some((worker) => worker.employeeId === employeeId)) return forbidden(response);
+    const existing = (await readAuditEvents({ type: "exception_acknowledged", employeeId, payPeriod, limit: 1 }))[0];
+    if (existing) return jsonResponse(response, 200, { event: existing, duplicate: true });
+    if (isActionRateLimited(`${user.username}:acknowledge`, 30)) {
+      return tooManyRequests(response, "Acknowledgement rate limit exceeded. Try again later.");
+    }
     const event = await appendAuditEvent({
       type: "exception_acknowledged",
       employeeId,
@@ -663,13 +694,15 @@ async function handleApi(request, response, url) {
       actor: user.username,
       actorRole: user.role
     });
-    jsonResponse(response, 201, { event });
+    jsonResponse(response, 201, { event, duplicate: false });
     return;
   }
 
   if (request.method === "POST" && url.pathname === "/api/actions/workday-inbox") {
     const user = findAuthenticatedUser(request);
     if (!user) return unauthorized(response);
+    const authorizedUser = publicUser(user);
+    if (!authorizedUser.canCreateInboxTask) return forbidden(response, "Workday Inbox task permission is required");
     const endpoint = process.env.WORKDAY_INBOX_TASK_URL;
     if (!endpoint) return jsonResponse(response, 503, { error: "WORKDAY_INBOX_TASK_URL is not configured" });
     const body = await readJsonBody(request);
@@ -678,15 +711,21 @@ async function handleApi(request, response, url) {
     const { data } = await loadWorkdayData();
     const scopedData = applyRoleSecurity(data, user);
     if (!scopedData.workers.some((worker) => worker.employeeId === employeeId)) return forbidden(response);
+    const existing = (await readAuditEvents({ type: "workday_inbox_task_created", employeeId, payPeriod, limit: 1 }))[0];
+    if (existing) return jsonResponse(response, 200, { event: existing, duplicate: true });
+    if (isActionRateLimited(`${user.username}:workday-inbox`, 10)) {
+      return tooManyRequests(response, "Workday Inbox task rate limit exceeded. Try again later.");
+    }
+    const idempotencyKey = createHash("sha256").update(`${employeeId}:${payPeriod}`).digest("hex");
     const workdayResponse = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...authHeaders() },
+      headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey, ...authHeaders() },
       body: JSON.stringify({ employeeId, payPeriod, requestedBy: user.username }),
       signal: AbortSignal.timeout(workdayFetchTimeoutMs)
     });
     if (!workdayResponse.ok) return jsonResponse(response, 502, { error: `Workday task request failed with status ${workdayResponse.status}` });
-    const event = await appendAuditEvent({ type: "workday_inbox_task_created", employeeId, payPeriod, actor: user.username, actorRole: user.role });
-    jsonResponse(response, 201, { event });
+    const event = await appendAuditEvent({ type: "workday_inbox_task_created", employeeId, payPeriod, idempotencyKey, actor: user.username, actorRole: user.role });
+    jsonResponse(response, 201, { event, duplicate: false });
     return;
   }
 
@@ -737,9 +776,13 @@ async function handleApi(request, response, url) {
   if (request.method === "POST" && url.pathname === "/api/delivery/trigger") {
     const user = findAuthenticatedUser(request);
     if (!user) return unauthorized(response);
-    if (!["payroll_admin", "payroll_manager"].includes(user.role)) return forbidden(response);
+    const authorizedUser = publicUser(user);
+    if (!authorizedUser.canTriggerDelivery) return forbidden(response, "Scheduled delivery permission is required");
+    if (isActionRateLimited(`${user.username}:delivery`, 2)) {
+      return tooManyRequests(response, "Scheduled delivery rate limit exceeded. Try again later.");
+    }
     const { data } = await loadWorkdayData();
-    const delivery = await sendScheduledDelivery(data);
+    const delivery = await sendScheduledDelivery(applyRoleSecurity(data, user));
     await appendAuditEvent(deliveryAuditRecord(delivery, user.username, user.role));
     jsonResponse(response, 200, { accepted: true, delivery });
     return;
@@ -911,4 +954,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   });
 }
 
-export { getAzureEasyAuthUser, getUsers, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, server, shouldCompress, verifyPassword };
+export { getAzureEasyAuthUser, getUsers, isActionRateLimited, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, server, shouldCompress, verifyPassword };

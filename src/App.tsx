@@ -289,6 +289,8 @@ export function App() {
         <FilterSummary filters={filters} isRefreshing={isRefreshing} lastUpdated={lastUpdated} />
         <DashboardShell
           activeTab={activeTab}
+          canAcknowledge={dataSourceMode !== "proxy" || authUser?.canAcknowledge === true}
+          canCreateWorkdayTask={dataSourceMode === "proxy" && authUser?.canCreateInboxTask === true}
           canExport={dataSourceMode !== "proxy" || authUser?.canExport === true}
           data={activeData}
           dataSourceMode={dataSourceMode}

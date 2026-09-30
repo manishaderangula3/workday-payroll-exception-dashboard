@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { demoDashboardData } from "./demoData.js";
-import { applyRoleSecurity } from "./rbac.js";
+import { applyRoleSecurity, publicUser } from "./rbac.js";
 
 describe("backend role security", () => {
   it("filters rows to allowed departments before returning dashboard data", () => {
@@ -32,5 +32,15 @@ describe("backend role security", () => {
       employeeName: "Worker W-2001",
       managerEmail: "masked@example.com"
     });
+  });
+
+  it("rejects unknown roles instead of inheriting auditor access", () => {
+    expect(() => publicUser({ username: "unknown", displayName: "Unknown", role: "typo_role" }))
+      .toThrow("Unsupported security role");
+  });
+
+  it("denies workflow actions to read-only roles", () => {
+    expect(publicUser({ username: "auditor", displayName: "Auditor", role: "read_only_auditor" }))
+      .toMatchObject({ canAcknowledge: false, canCreateInboxTask: false, canTriggerDelivery: false });
   });
 });

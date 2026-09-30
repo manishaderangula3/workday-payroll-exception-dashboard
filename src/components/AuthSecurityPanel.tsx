@@ -96,7 +96,8 @@ export function AuthSecurityPanel({
             <p className="mini-label">Permissions</p>
             <p className="mt-1 text-sm font-semibold text-workday-ink">
               {user.canViewWorkerDetail ? "Worker detail" : "Masked worker detail"} /{" "}
-              {user.canExport ? "Export enabled" : "Export restricted"}
+              {user.canExport ? "Export enabled" : "Export restricted"} /{" "}
+              {user.canAcknowledge || user.canCreateInboxTask ? "Actions enabled" : "Actions restricted"}
             </p>
           </div>
         </div>
