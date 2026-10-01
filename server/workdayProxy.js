@@ -30,6 +30,7 @@ const workdayFetchTimeoutMs =
     : 15000;
 const maxFailedLoginAttempts = 5;
 const loginThrottleWindowMs = 15 * 60 * 1000;
+const maxTrackedLoginAttempts = 5000;
 const failedLoginAttempts = new Map();
 const actionRateLimits = new Map();
 const authMode = process.env.AUTH_MODE ?? "local";
@@ -270,22 +271,38 @@ function getUsers() {
 }
 
 function loginThrottleKey(request, username) {
+  const socketAddress = request.socket?.remoteAddress || "unknown";
+  const trustedProxies = new Set(
+    (process.env.TRUSTED_PROXY_IPS ?? "")
+      .split(",")
+      .map((address) => address.trim())
+      .filter(Boolean)
+  );
   const forwardedFor = request.headers["x-forwarded-for"];
-  const clientAddress = Array.isArray(forwardedFor)
-    ? forwardedFor[0]
-    : forwardedFor?.split(",")[0] || request.socket?.remoteAddress || "unknown";
+  const forwardedChain = (Array.isArray(forwardedFor) ? forwardedFor : [forwardedFor])
+    .filter(Boolean)
+    .flatMap((value) => value.split(","))
+    .map((address) => address.trim())
+    .filter(Boolean);
 
-  return `${clientAddress}:${username}`;
+  while (forwardedChain.length && trustedProxies.has(forwardedChain.at(-1))) forwardedChain.pop();
+  const clientAddress = trustedProxies.has(socketAddress) && forwardedChain.length
+    ? forwardedChain.at(-1)
+    : socketAddress;
+
+  return createHash("sha256")
+    .update(`${clientAddress}\0${username.trim().toLowerCase()}`)
+    .digest("base64url");
 }
 
-function isLoginThrottled(key) {
+function isLoginThrottled(key, now = Date.now()) {
   const current = failedLoginAttempts.get(key);
 
   if (!current) {
     return false;
   }
 
-  if (Date.now() - current.firstFailedAt > loginThrottleWindowMs) {
+  if (now - current.firstFailedAt > loginThrottleWindowMs) {
     failedLoginAttempts.delete(key);
     return false;
   }
@@ -293,11 +310,19 @@ function isLoginThrottled(key) {
   return current.count >= maxFailedLoginAttempts;
 }
 
-function recordFailedLogin(key) {
+function recordFailedLogin(key, now = Date.now()) {
   const current = failedLoginAttempts.get(key);
 
-  if (!current || Date.now() - current.firstFailedAt > loginThrottleWindowMs) {
-    failedLoginAttempts.set(key, { count: 1, firstFailedAt: Date.now() });
+  if (!current || now - current.firstFailedAt > loginThrottleWindowMs) {
+    if (!current && failedLoginAttempts.size >= maxTrackedLoginAttempts) {
+      for (const [attemptKey, attempt] of failedLoginAttempts) {
+        if (now - attempt.firstFailedAt > loginThrottleWindowMs) failedLoginAttempts.delete(attemptKey);
+      }
+      while (failedLoginAttempts.size >= maxTrackedLoginAttempts) {
+        failedLoginAttempts.delete(failedLoginAttempts.keys().next().value);
+      }
+    }
+    failedLoginAttempts.set(key, { count: 1, firstFailedAt: now });
     return;
   }
 
@@ -954,4 +979,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   });
 }
 
-export { getAzureEasyAuthUser, getUsers, isActionRateLimited, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, server, shouldCompress, verifyPassword };
+export { clearFailedLogin, getAzureEasyAuthUser, getUsers, isActionRateLimited, isLoginThrottled, loadWorkdayData, loginThrottleKey, parseAzurePrincipal, readJsonBody, recordFailedLogin, resolveStaticFilePath, secureValueMatches, server, shouldCompress, verifyPassword };

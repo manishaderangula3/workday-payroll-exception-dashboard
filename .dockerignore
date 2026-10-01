@@ -3,7 +3,13 @@ dist
 coverage
 playwright-report
 test-results
+.data
+.tmp-upload-test
+.agents
+.aws
+.codex
 .git
-.env
-.env.local
+.env*
+!.env.example
 *.log
+*.tsbuildinfo

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getAzureEasyAuthUser, getUsers, isActionRateLimited, loadWorkdayData, parseAzurePrincipal, readJsonBody, resolveStaticFilePath, secureValueMatches, shouldCompress, verifyPassword } from "./workdayProxy.js";
+import { clearFailedLogin, getAzureEasyAuthUser, getUsers, isActionRateLimited, isLoginThrottled, loadWorkdayData, loginThrottleKey, parseAzurePrincipal, readJsonBody, recordFailedLogin, resolveStaticFilePath, secureValueMatches, shouldCompress, verifyPassword } from "./workdayProxy.js";
 
 function requestFromText(text) {
   return {
@@ -177,5 +177,46 @@ describe("backend proxy hardening", () => {
     expect(isActionRateLimited(key, 2, 1000, 200)).toBe(false);
     expect(isActionRateLimited(key, 2, 1000, 300)).toBe(true);
     expect(isActionRateLimited(key, 2, 1000, 1200)).toBe(false);
+  });
+
+  it("ignores forwarded client addresses unless the socket is a trusted proxy", () => {
+    const originalProxies = process.env.TRUSTED_PROXY_IPS;
+    const request = {
+      headers: { "x-forwarded-for": "198.51.100.22" },
+      socket: { remoteAddress: "10.0.0.5" }
+    };
+
+    try {
+      delete process.env.TRUSTED_PROXY_IPS;
+      const directKey = loginThrottleKey(request, "User.Name");
+      expect(directKey).toBe(loginThrottleKey({ headers: {}, socket: request.socket }, "user.name"));
+      process.env.TRUSTED_PROXY_IPS = "10.0.0.5";
+      expect(loginThrottleKey(request, "User.Name")).not.toBe(directKey);
+      expect(loginThrottleKey({
+        headers: { "x-forwarded-for": "203.0.113.99, 198.51.100.22" },
+        socket: request.socket
+      }, "User.Name")).toBe(loginThrottleKey({
+        headers: {},
+        socket: { remoteAddress: "198.51.100.22" }
+      }, "user.name"));
+    } finally {
+      if (typeof originalProxies === "undefined") delete process.env.TRUSTED_PROXY_IPS;
+      else process.env.TRUSTED_PROXY_IPS = originalProxies;
+    }
+  });
+
+  it("bounds failed-login tracking by evicting the oldest key", () => {
+    const prefix = `login-cap:${Date.now()}`;
+    const oldestKey = `${prefix}:oldest`;
+
+    try {
+      for (let attempt = 0; attempt < 5; attempt += 1) recordFailedLogin(oldestKey, 100);
+      expect(isLoginThrottled(oldestKey, 200)).toBe(true);
+      for (let index = 0; index < 5000; index += 1) recordFailedLogin(`${prefix}:${index}`, 100);
+      expect(isLoginThrottled(oldestKey, 200)).toBe(false);
+    } finally {
+      clearFailedLogin(oldestKey);
+      for (let index = 0; index < 5000; index += 1) clearFailedLogin(`${prefix}:${index}`);
+    }
   });
 });

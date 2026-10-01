@@ -175,30 +175,30 @@ The application code, automated tests, build, deployment container, and producti
 
 ### Current Code Audit
 
-The latest repository remediation review was completed on September 30, 2026 and produced the following baseline:
+The latest repository remediation review was completed on October 1, 2026 and produced the following baseline:
 
 | Check | Result |
 |---|---|
-| Unit tests | 74 of 74 passed across 16 test files |
+| Unit tests | 76 of 76 passed across 16 test files |
 | Functional browser security tests | 5 of 5 passed |
 | Production build | Passed, including TypeScript compilation and bundle budgets |
 | npm dependency audit | 0 known vulnerabilities |
-| High-priority audit findings | 3 remediated and regression-tested |
+| Audit findings | 5 remediated and regression-tested |
 
-Completed high-priority remediation:
+Completed remediation:
 
 | Finding | Resolution |
 |---|---|
 | RBAC failed open for unknown roles | Unknown roles and inherited mapping properties are rejected; live role mappings accept only supported application roles. |
 | Workflow actions lacked capability and replay controls | Server capabilities, UI visibility, duplicate-event reuse, deterministic Inbox idempotency keys, and per-user action rate limits are enforced. |
 | Docker used end-of-life Node.js 20 | Build and runtime stages now use Node.js 24 LTS. |
+| Container ran as root and sent local artifacts in its build context | The runtime uses the built-in `node` user, while `.dockerignore` excludes secrets, Git metadata, local data, dependencies, and test artifacts. |
+| Login throttling trusted arbitrary forwarding headers and grew without a bound | Forwarded addresses are accepted only from configured trusted proxy sockets, usernames are normalized, and failed-login tracking is capped at 5,000 keys. |
 
 The following previously identified items remain before production deployment:
 
 | Priority | Required remediation |
 |---|---|
-| Medium | Run the runtime container as a non-root user and add a `.dockerignore` that excludes secrets, Git metadata, local audit data, dependencies, and test artifacts. |
-| Medium | Trust forwarded client addresses only behind an approved proxy and place a bound on failed-login tracking. |
 | Medium | Enforce response-byte and total-row limits for Workday and durable audit API responses. |
 | Medium | Validate `SECRET_ROTATION_MAX_AGE_DAYS` as a positive finite integer. |
 | Medium | Add HTTP-level authorization and replay tests for every state-changing backend endpoint. |
