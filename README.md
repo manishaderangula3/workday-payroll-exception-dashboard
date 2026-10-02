@@ -8,7 +8,7 @@
 
 ## Project Overview
 
-The Workday Payroll Exception & Reporting Dashboard is a portfolio-ready documentation project for a Workday-native payroll reporting solution. It defines advanced reports, calculated fields, KPI logic, a composite dashboard, testing artifacts, UAT scenarios, defect tracking, assumptions, and sample outputs for payroll exception management.
+The Workday Payroll Exception & Reporting Dashboard is a portfolio-ready reporting application and documentation package for a Workday-native payroll solution. It defines advanced reports, calculated fields, KPI logic, a composite dashboard, testing artifacts, UAT scenarios, defect tracking, assumptions, and sample outputs for payroll exception management.
 
 Payroll managers often lack a single, reliable view of payroll exceptions before approval. Missing time, unexpected overtime, failed deductions, tax issues, and payroll cost variances may live in separate reports or manual spreadsheets. This project solves that problem with a centralized Workday dashboard that detects exceptions automatically, summarizes payroll readiness, and provides drill-down paths to detailed reports and resolution workflows.
 
