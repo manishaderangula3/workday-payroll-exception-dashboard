@@ -31,18 +31,31 @@ describe("Workday response boundary", () => {
 
   it("follows same-origin pagination", async () => {
     const fetchImpl = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ id: 1 }], next: "/page-2" }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ id: 2 }] }) });
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: [{ id: 1 }], next: "/page-2" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: [{ id: 2 }] })));
 
     await expect(fetchWorkdayPages("https://workday.example/report", { fetchImpl })).resolves.toEqual([{ id: 1 }, { id: 2 }]);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it("rejects pagination that changes origin", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ data: [], next: "https://attacker.example/steal" })
-    });
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      data: [], next: "https://attacker.example/steal"
+    })));
     await expect(fetchWorkdayPages("https://workday.example/report", { fetchImpl })).rejects.toThrow("changed origin");
+  });
+
+  it("rejects oversized pages and total row counts before accumulating them", async () => {
+    const oversizedPage = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [{ value: "x".repeat(100) }] })));
+    await expect(fetchWorkdayPages("https://workday.example/report", {
+      fetchImpl: oversizedPage,
+      maxResponseBytes: 32
+    })).rejects.toThrow("exceeded 32 bytes");
+
+    const tooManyRows = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [{ id: 1 }, { id: 2 }] })));
+    await expect(fetchWorkdayPages("https://workday.example/report", {
+      fetchImpl: tooManyRows,
+      maxRows: 1
+    })).rejects.toThrow("exceeded 1 total rows");
   });
 });

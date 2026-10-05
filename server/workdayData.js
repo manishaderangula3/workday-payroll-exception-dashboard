@@ -1,3 +1,5 @@
+import { readBoundedJson } from "./httpResponse.js";
+
 const aliases = {
   employeeId: ["employeeId", "Employee_ID", "Worker_ID", "Worker"],
   employeeName: ["employeeName", "Employee_Name", "Worker_Name", "Name"],
@@ -300,6 +302,12 @@ export async function fetchWorkdayPages(startUrl, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const retries = Number.isInteger(options.retries) && options.retries > 0 ? options.retries : 3;
   const maxPages = Number.isInteger(options.maxPages) && options.maxPages > 0 ? options.maxPages : 25;
+  const configuredMaxResponseBytes = Number(options.maxResponseBytes ?? process.env.WORKDAY_MAX_RESPONSE_BYTES);
+  const maxResponseBytes = Number.isInteger(configuredMaxResponseBytes) && configuredMaxResponseBytes > 0
+    ? configuredMaxResponseBytes
+    : 10 * 1024 * 1024;
+  const configuredMaxRows = Number(options.maxRows ?? process.env.WORKDAY_MAX_ROWS);
+  const maxRows = Number.isInteger(configuredMaxRows) && configuredMaxRows > 0 ? configuredMaxRows : 100000;
   const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : 15000;
   const headers = options.headers ?? {};
   const origin = new URL(startUrl).origin;
@@ -323,7 +331,8 @@ export async function fetchWorkdayPages(startUrl, options = {}) {
     }
     if (!response?.ok) throw lastError ?? new Error("Workday request failed");
 
-    const { rows, nextUrl } = extractWorkdayPage(await response.json());
+    const { rows, nextUrl } = extractWorkdayPage(await readBoundedJson(response, maxResponseBytes, "Workday"));
+    if (allRows.length + rows.length > maxRows) throw new Error(`Workday response exceeded ${maxRows} total rows`);
     allRows.push(...rows);
     if (!nextUrl) return allRows;
     const resolvedNext = new URL(nextUrl, currentUrl);

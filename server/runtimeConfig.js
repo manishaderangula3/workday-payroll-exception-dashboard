@@ -104,9 +104,11 @@ export function validateRuntimeConfig(env = process.env) {
   if (!Number.isInteger(rpo) || rpo < 1) errors.push("DR_RPO_MINUTES must be a positive integer");
 
   const rotationMaxAgeDays = Number(env.SECRET_ROTATION_MAX_AGE_DAYS ?? 90);
+  const validRotationMaxAge = Number.isInteger(rotationMaxAgeDays) && rotationMaxAgeDays > 0;
+  if (!validRotationMaxAge) errors.push("SECRET_ROTATION_MAX_AGE_DAYS must be a positive integer");
   const rotatedAt = new Date(env.SECRETS_ROTATED_AT ?? "");
   const rotationAgeDays = (Date.now() - rotatedAt.getTime()) / 86_400_000;
-  if (!Number.isFinite(rotatedAt.getTime()) || rotationAgeDays < 0 || rotationAgeDays > rotationMaxAgeDays) {
+  if (!Number.isFinite(rotatedAt.getTime()) || rotationAgeDays < 0 || (validRotationMaxAge && rotationAgeDays > rotationMaxAgeDays)) {
     errors.push("SECRETS_ROTATED_AT must be a valid timestamp within SECRET_ROTATION_MAX_AGE_DAYS");
   }
   if (env.SESSION_SECRET_PREVIOUS && env.SESSION_SECRET_PREVIOUS === env.SESSION_SECRET) errors.push("SESSION_SECRET_PREVIOUS must differ from SESSION_SECRET");

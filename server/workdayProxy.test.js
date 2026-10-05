@@ -89,17 +89,14 @@ describe("backend proxy hardening", () => {
 
     keys.forEach((key) => delete process.env[key]);
     process.env.WORKDAY_WORKERS_URL = "https://workday.example/workers";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ data: [{
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [{
         employeeId: "W-LIVE-1",
         employeeName: "Live Worker",
         department: "Operations",
         manager: "Live Manager",
         company: "Example Company",
         payGroup: "US Weekly"
-      }] })
-    }));
+      }] }))));
 
     try {
       const result = await loadWorkdayData();

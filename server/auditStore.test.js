@@ -7,6 +7,7 @@ describe("HTTP audit store", () => {
     delete process.env.AUDIT_STORE_MODE;
     delete process.env.AUDIT_STORE_URL;
     delete process.env.AUDIT_STORE_TOKEN;
+    delete process.env.AUDIT_STORE_MAX_RESPONSE_BYTES;
   });
 
   it("writes and queries events through the durable API", async () => {
@@ -15,7 +16,7 @@ describe("HTTP audit store", () => {
     process.env.AUDIT_STORE_TOKEN = "secret";
     const fetchImpl = vi.fn()
       .mockResolvedValueOnce({ ok: true })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ events: [{ type: "exception_acknowledged", payPeriod: "P1" }] }) });
+      .mockResolvedValueOnce(new Response(JSON.stringify({ events: [{ type: "exception_acknowledged", payPeriod: "P1" }] })));
     vi.stubGlobal("fetch", fetchImpl);
 
     const written = await appendAuditEvent({ type: "report_exported", actor: "admin" });
@@ -31,7 +32,19 @@ describe("HTTP audit store", () => {
     process.env.AUDIT_STORE_MODE = "http";
     process.env.AUDIT_STORE_URL = "https://audit.example/events";
     process.env.AUDIT_STORE_TOKEN = "secret";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ value: [] }) }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ value: [] }))));
     await expect(readAuditEvents()).rejects.toThrow("Audit store response must be an array");
+  });
+
+  it("rejects oversized query responses before parsing", async () => {
+    process.env.AUDIT_STORE_MODE = "http";
+    process.env.AUDIT_STORE_URL = "https://audit.example/events";
+    process.env.AUDIT_STORE_TOKEN = "secret";
+    process.env.AUDIT_STORE_MAX_RESPONSE_BYTES = "32";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      events: [{ detail: "x".repeat(100) }]
+    }))));
+
+    await expect(readAuditEvents()).rejects.toThrow("exceeded 32 bytes");
   });
 });

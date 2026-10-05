@@ -70,4 +70,12 @@ describe("runtime configuration", () => {
       "ENTRA_ROLE_MAPPINGS_JSON must map Entra roles to supported security roles"
     );
   });
+
+  it.each(["abc", "0", "1.5"])("rejects invalid secret rotation age %s", (value) => {
+    const config = liveConfig();
+    config.SECRET_ROTATION_MAX_AGE_DAYS = value;
+    expect(validateRuntimeConfig(config)).toContain(
+      "SECRET_ROTATION_MAX_AGE_DAYS must be a positive integer"
+    );
+  });
 });

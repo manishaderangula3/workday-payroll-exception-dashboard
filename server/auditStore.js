@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { hostname } from "node:os";
 import { dirname, resolve } from "node:path";
+import { readBoundedJson } from "./httpResponse.js";
 
 function auditFilePath() {
   return resolve(process.env.DATA_DIR ?? ".data", "audit-events.jsonl");
@@ -34,7 +35,9 @@ async function requestAuditStore(method, record, filters = {}) {
     signal: AbortSignal.timeout(Number(process.env.AUDIT_STORE_TIMEOUT_MS ?? 10000))
   });
   if (!response.ok) throw new Error(`Audit store request failed with status ${response.status}`);
-  return method === "GET" ? response.json() : null;
+  const configuredMaxBytes = Number(process.env.AUDIT_STORE_MAX_RESPONSE_BYTES);
+  const maxBytes = Number.isInteger(configuredMaxBytes) && configuredMaxBytes > 0 ? configuredMaxBytes : 5 * 1024 * 1024;
+  return method === "GET" ? readBoundedJson(response, maxBytes, "Audit store") : null;
 }
 
 export async function appendAuditEvent(event) {
