@@ -19,7 +19,8 @@
 | --- | --- | --- |
 | Production build succeeds | Complete | `npm run build` |
 | Unit tests pass | Complete | `npm test` |
-| Dependency audit is clean | Complete | `npm audit --audit-level=low` |
+| Production dependency audit is clean | Complete | `npm audit --omit=dev --audit-level=low` reports 0 known vulnerabilities. |
+| Build-tool dependency audit | Pending migration | Seven Tailwind CSS 3 transitive advisories require a Tailwind 4 migration and visual regression approval. |
 | Upload validation exists | Complete | CSV type, empty file, and 5 MB size checks. |
 | Formatted Excel export | Complete | The app generates `.xlsx` workbooks with report metadata, frozen headers, filters, widths, and number formats. |
 | Runtime errors fail gracefully | Complete | React error boundary wraps the app. |

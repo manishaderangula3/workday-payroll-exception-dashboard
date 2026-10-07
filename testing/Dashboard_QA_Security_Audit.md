@@ -4,10 +4,10 @@
 
 | Item | Result | Notes |
 | --- | --- | --- |
-| Audit Date | 2026-09-02 | Local repository review for portfolio dashboard readiness and upload hardening. |
-| Scope | React/Vite dashboard app, sample/uploaded data, reports, exports, and documentation links | No live Workday tenant, secrets, or production APIs are used. |
-| Environment | Local Vite app | Static sample data plus CSV upload simulation. |
-| Overall Status | Passed with production hardening | Dependency audit is clean, upload guardrails are in place, CSV formula injection is mitigated, and runtime error boundary is enabled. |
+| Audit Date | 2026-10-07 | Local repository review for dashboard, proxy, authentication, authorization, uploads, exports, and production controls. |
+| Scope | React/Vite dashboard, Node proxy, sample/uploaded/Workday data adapters, reports, actions, exports, and documentation | Live tenant configuration and external approvals remain environment-owned release gates. |
+| Environment | Local full-stack application | Synthetic sample data and controlled CSV uploads; live adapters require approved secrets and tenant endpoints. |
+| Overall Status | Passed locally with external gates pending | Runtime dependencies are clean, security regression tests pass, and known build-tool advisories are documented for the Tailwind 4 migration. |
 
 ## Pending Task Review
 
@@ -20,12 +20,13 @@
 
 | Check | Result | Detail |
 | --- | --- | --- |
-| Dependency vulnerability audit | Passed after remediation | `npm audit --audit-level=low` initially found Vite/esbuild advisory exposure through Vitest. `npm audit fix --force` updated Vitest and reported `found 0 vulnerabilities`. |
+| Production dependency audit | Passed | `npm audit --omit=dev --audit-level=low` reports 0 known vulnerabilities. |
+| Build-tool dependency audit | Follow-up required | The full audit reports seven transitive advisories under Tailwind CSS 3. Removing them requires a Tailwind 4 migration and visual regression pass. |
 | Risky browser API scan | Passed | No app usage found for `dangerouslySetInnerHTML`, `eval`, `new Function`, `innerHTML`, `outerHTML`, `document.cookie`, `localStorage`, or `sessionStorage`. |
 | Secret keyword scan | Passed with expected package-lock noise | No source secrets found. Matches were dependency package names such as `js-tokens` in `package-lock.json`. |
-| External data handling | Passed | Dashboard uses local TypeScript fixtures or user-uploaded CSV files and does not call external APIs. |
+| External data handling | Passed in code; live validation pending | Workday requests are server-side, schema-normalized, size-bounded, paginated, retried, and scoped by the authenticated principal. Tenant endpoint validation is an external release gate. |
 | Upload handling | Passed | CSV uploads are checked for file type, empty files, and 5 MB size limit before parsing. |
-| Export handling | Passed | CSV export is generated client-side from filtered rows. Export filenames and metadata do not include credentials, and formula-like cell values are neutralized for spreadsheet safety. |
+| Export handling | Passed | Proxy-mode `.xlsx` exports are rebuilt from server-scoped data behind export authorization. Formula-like text values are neutralized for spreadsheet safety. |
 | Workday data privacy | Passed for portfolio simulation | Data is synthetic sample data. No real worker, payroll, benefit, tax, or tenant data should be committed. |
 | Runtime resilience | Passed | React error boundary displays a recovery view if an unexpected render error occurs. |
 
@@ -72,7 +73,8 @@
 
 | Command | Purpose | Expected Result |
 | --- | --- | --- |
-| `npm audit --audit-level=low` | Dependency vulnerability scan | 0 vulnerabilities |
+| `npm audit --omit=dev --audit-level=low` | Production dependency vulnerability gate | 0 vulnerabilities |
+| `npm audit --audit-level=low` | Full dependency visibility | Seven documented Tailwind 3 build-tool advisories until migration |
 | `npm test` | Unit and calculation regression tests | All tests pass |
 | `npm run build` | TypeScript and production bundle validation | Build succeeds |
 | Local HTTP check | Confirm Vite preview responds | HTTP 200 |
@@ -81,11 +83,10 @@
 
 | Risk | Impact | Recommendation |
 | --- | --- | --- |
-| No live Workday tenant connection | Dashboard remains a portfolio/upload simulation | Keep sample data clearly labeled and map fields to Workday report specs. Use backend proxy before real Workday RaaS/API integration. |
-| No browser automation suite installed | Visual regression coverage is manual | Add Playwright later if screenshot validation becomes a formal requirement. |
-| `npm audit fix --force` updated Vitest major version | Test runner behavior may differ from the earlier version | Keep the current passing test suite and avoid further package changes unless needed. |
-| Workday security cannot be technically enforced in this static app | Real tenant access rules are documented but not executable here | Validate row-level security inside Workday during tenant implementation. |
+| Live Workday and Entra configuration is not connected locally | Tenant behavior and identity claims are not yet proven | Complete the production evidence gate in the approved hosting environment. |
+| Tailwind 3 transitive build advisories | Developer/build hosts retain seven known advisories | Migrate to Tailwind 4 and approve the Playwright visual changes before release. |
+| External operational controls are pending | Monitoring, restore, rotation, DR, penetration testing, and tenant security require hosting-team evidence | Keep `npm run validate:production` blocking until authorized evidence is recorded. |
 
 ## Final QA Decision
 
-The local dashboard is ready for portfolio presentation and controlled CSV-upload demos. The app has passing tests, a clean dependency vulnerability audit, no obvious unsafe browser API usage, upload guardrails, CSV export hardening, and documentation that explains current constraints for a Workday simulation project.
+The local application is ready for portfolio presentation and controlled demonstrations. Production deployment remains blocked until the Tailwind build-tool advisories are resolved or formally accepted and all tenant, identity, reconciliation, performance, operations, and UAT evidence passes `npm run validate:production`.

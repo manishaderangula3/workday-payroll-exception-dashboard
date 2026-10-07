@@ -3,9 +3,12 @@ dist/
 coverage/
 *.tsbuildinfo
 vite.config.d.ts
-.env
-.env.local
+.env*
+!.env.example
 npm-debug.log*
 playwright-report/
 test-results/
 .data/
+.aws/
+.codex/
+.tmp-upload-test/

@@ -27,11 +27,12 @@ export type BackendExportReportType =
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     credentials: "include",
+    ...init,
     headers: {
       "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
       ...(init?.headers ?? {})
-    },
-    ...init
+    }
   });
 
   const payload = await response.json().catch(() => ({}));
@@ -91,7 +92,7 @@ export async function downloadBackendReport(
   const response = await fetch("/api/exports/report", {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
     body: JSON.stringify({ reportType, filters, employeeId, thresholds })
   });
 

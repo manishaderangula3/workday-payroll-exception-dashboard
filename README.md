@@ -175,15 +175,17 @@ The application code, automated tests, build, deployment container, and producti
 
 ### Current Code Audit
 
-The latest repository remediation review was completed on October 6, 2026 and produced the following baseline:
+The latest repository remediation review was completed on October 7, 2026 and produced the following baseline:
 
 | Check | Result |
 |---|---|
-| Unit tests | 87 of 87 passed across 17 test files |
+| Unit tests | 88 of 88 passed across 17 test files |
 | Functional browser security tests | 5 of 5 passed |
 | Production build | Passed, including TypeScript compilation and bundle budgets |
-| npm dependency audit | 0 known vulnerabilities |
-| Audit findings | 8 remediated and regression-tested |
+| Production dependency audit | 0 known vulnerabilities (`npm audit --omit=dev`) |
+| Build-tool dependency audit | 7 Tailwind 3 transitive advisories; Tailwind 4 migration required |
+| Git secret history scan | No committed real `.env` files or high-confidence credential formats found |
+| Audit findings | 11 remediated and regression-tested |
 
 Completed remediation:
 
@@ -197,11 +199,15 @@ Completed remediation:
 | Upstream Workday and audit responses were unbounded | Workday pages are capped at 10 MiB, datasets at 100,000 rows, and audit responses at 5 MiB before JSON parsing; each limit is configurable. |
 | Invalid secret-rotation limits bypassed age validation | `SECRET_ROTATION_MAX_AGE_DAYS` must now be a positive integer before timestamp age is evaluated. |
 | Security tests stopped below the HTTP authorization layer | Direct HTTP tests now cover denied and allowed actions, Entra mapping failures, action throttling, Inbox replay, and delivery trigger and receipt authorization. |
+| Environment-file ignore rules covered only two names | Git now ignores every `.env*` variant except the intentionally tracked `.env.example`, plus local AWS, Codex, and upload artifacts. |
+| Cookie-authenticated writes lacked explicit CSRF verification | Browser write requests must send a non-simple verification header; webhook receipts remain separately protected by their shared secret. |
+| Client error boundaries displayed exception details | Runtime exception messages and component stacks are no longer retained or rendered to users. |
 
 The following previously identified items remain before production deployment:
 
 | Priority | Required remediation |
 |---|---|
+| Medium | Migrate Tailwind CSS 3 to 4 and run visual regression tests to remove seven build-tool-only transitive advisories. Production runtime dependencies currently have zero known vulnerabilities. |
 
 Code cleanup identified during the same review is intentionally separate from security remediation: remove the unused CSV download implementation and unused fixture barrel exports, share the duplicated server-side missing-date calculation, and move browser-only packages out of runtime production dependencies. Client and server workbook generation remain separate by design because proxy-mode exports must be rebuilt from server-scoped data.
 

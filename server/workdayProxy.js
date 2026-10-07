@@ -526,6 +526,14 @@ async function loadWorkdayData() {
 }
 
 async function handleApi(request, response, url) {
+  const stateChanging = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method ?? "");
+  const requestedWith = Array.isArray(request.headers["x-requested-with"])
+    ? request.headers["x-requested-with"][0]
+    : request.headers["x-requested-with"];
+  if (stateChanging && url.pathname !== "/api/delivery/receipt" && requestedWith !== "XMLHttpRequest") {
+    return forbidden(response, "Request verification failed");
+  }
+
   if (request.method === "GET" && url.pathname === "/api/health") {
     const configuration = runtimeConfigurationStatus();
     jsonResponse(response, 200, {

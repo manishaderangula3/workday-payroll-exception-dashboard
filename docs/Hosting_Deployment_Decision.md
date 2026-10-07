@@ -99,7 +99,7 @@ Before routing traffic, run `npm run validate:config` with the deployment's reso
 | Validate authentication | HRIS/IT | Users can sign in and sessions use HTTP-only secure cookies. |
 | Validate role security | Payroll/HRIS/Security | Manager, HR Partner, Finance, and Payroll Admin scopes return only authorized rows. |
 | Run visual regression | Reporting Analyst | `npm run test:visual` passes against approved screenshots. |
-| Run audit | Systems Analyst | `npm audit --audit-level=low` returns no vulnerabilities. |
+| Run production audit | Systems Analyst | `npm audit --omit=dev --audit-level=low` returns no vulnerabilities; build-tool advisories are remediated or formally accepted. |
 | Approve go-live | Payroll Owner | No open Critical defects and approved disposition for High defects. |
 
 ## Rollback Plan

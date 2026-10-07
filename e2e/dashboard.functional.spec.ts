@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const verifiedHeaders = { "X-Requested-With": "XMLHttpRequest" };
+
 test.describe("@functional production controls", () => {
   test("restricted manager cannot export role-scoped payroll data", async ({ page }) => {
     await page.goto("/");
@@ -12,6 +14,7 @@ test.describe("@functional production controls", () => {
     await expect(page.getByRole("button", { name: /Export/ })).toHaveCount(0);
 
     const response = await page.request.post("/api/exports/report", {
+      headers: verifiedHeaders,
       data: {
         reportType: "payroll-costs",
         filters: {
@@ -33,6 +36,7 @@ test.describe("@functional production controls", () => {
     await page.getByRole("button", { name: "Sign In" }).click();
     await page.getByRole("button", { name: "Load Proxy Data" }).click();
     const response = await page.request.post("/api/exports/report", {
+      headers: verifiedHeaders,
       data: {
         reportType: "payroll-costs",
         filters: {
@@ -57,9 +61,11 @@ test.describe("@functional production controls", () => {
     await page.getByRole("button", { name: "Load Proxy Data" }).click();
 
     const acknowledgement = await page.request.post("/api/acknowledgements", {
+      headers: verifiedHeaders,
       data: { employeeId: "W-2001", payPeriod: "2026-09-15 Semi-Monthly" }
     });
     const inboxTask = await page.request.post("/api/actions/workday-inbox", {
+      headers: verifiedHeaders,
       data: { employeeId: "W-2001", payPeriod: "2026-09-15 Semi-Monthly" }
     });
 
@@ -75,8 +81,8 @@ test.describe("@functional production controls", () => {
     await page.getByRole("button", { name: "Load Proxy Data" }).click();
     const data = { employeeId: "W-2001", payPeriod: `security-test-${Date.now()}` };
 
-    const first = await page.request.post("/api/acknowledgements", { data });
-    const second = await page.request.post("/api/acknowledgements", { data });
+    const first = await page.request.post("/api/acknowledgements", { data, headers: verifiedHeaders });
+    const second = await page.request.post("/api/acknowledgements", { data, headers: verifiedHeaders });
 
     expect(first.status()).toBe(201);
     expect(second.status()).toBe(200);

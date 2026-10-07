@@ -1,5 +1,5 @@
 import { AlertTriangle, RotateCcw } from "lucide-react";
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Component, type ReactNode } from "react";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -14,14 +14,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     errorMessage: null
   };
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(): ErrorBoundaryState {
     return {
-      errorMessage: error.message || "The dashboard encountered an unexpected error."
+      errorMessage: "An unexpected error occurred. Try again or contact support."
     };
-  }
-
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("Dashboard runtime error", error, info.componentStack);
   }
 
   handleReset = () => {

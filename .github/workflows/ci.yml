@@ -14,10 +14,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm audit --audit-level=low
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=low
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium

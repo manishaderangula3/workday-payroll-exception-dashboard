@@ -14,13 +14,14 @@ function principalHeader(email, role) {
   })).toString("base64");
 }
 
-function apiRequest(path, { body, headers = {}, method = "GET" } = {}) {
+function apiRequest(path, { body, headers = {}, method = "GET", verifyRequest = true } = {}) {
   const payload = typeof body === "undefined" ? null : JSON.stringify(body);
   return new Promise((resolve, reject) => {
     const request = httpRequest(new URL(path, baseUrl), {
       method,
       headers: {
         ...(payload ? { "Content-Length": Buffer.byteLength(payload), "Content-Type": "application/json" } : {}),
+        ...(method !== "GET" && verifyRequest ? { "X-Requested-With": "XMLHttpRequest" } : {}),
         ...headers
       }
     }, (response) => {
@@ -89,6 +90,18 @@ beforeEach(() => {
 });
 
 describe("HTTP authorization boundary", () => {
+  it("rejects state-changing browser requests without an anti-CSRF header", async () => {
+    const response = await apiRequest("/api/acknowledgements", {
+      method: "POST",
+      verifyRequest: false,
+      headers: auth("csrf-http@example.com", "Payroll.Admin"),
+      body: { employeeId: "W-2001", payPeriod: "HTTP CSRF" }
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toBe("Request verification failed");
+  });
+
   it("denies workflow and delivery actions to a finance role", async () => {
     const headers = auth("finance-http@example.com", "Finance.Analyst");
     const body = { employeeId: "W-2001", payPeriod: "HTTP Security" };
