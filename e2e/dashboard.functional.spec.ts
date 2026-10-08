@@ -95,4 +95,31 @@ test.describe("@functional production controls", () => {
     expect(response.headers()["content-type"]).toContain("text/markdown");
     expect(await response.text()).toContain("Payroll Cost");
   });
+
+  test("documentation links resolve without browser errors", async ({ page, request }) => {
+    const browserErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") browserErrors.push(message.text());
+    });
+    page.on("pageerror", (error) => browserErrors.push(error.message));
+
+    await page.goto("/");
+    await page.getByLabel("Username").fill("payroll.admin");
+    await page.getByLabel("Password").fill("PayrollDemo123!");
+    await page.getByRole("button", { name: "Sign In" }).click();
+    await page.getByRole("navigation", { name: "Dashboard reports" }).getByRole("button", { name: "Documentation" }).click();
+
+    const links = await page.locator('a[href^="/reports/"]').evaluateAll((anchors) =>
+      anchors.map((anchor) => anchor.getAttribute("href")).filter((href): href is string => Boolean(href))
+    );
+    expect(links).toHaveLength(6);
+
+    for (const href of links) {
+      const response = await request.get(href);
+      expect(response.ok(), `${href} should resolve`).toBeTruthy();
+      expect(response.headers()["content-type"], `${href} should be Markdown`).toContain("text/markdown");
+    }
+
+    expect(browserErrors).toEqual([]);
+  });
 });
