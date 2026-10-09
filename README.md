@@ -1,497 +1,284 @@
-# Workday Payroll Exception & Reporting Dashboard
+# Workday Payroll Exception Dashboard
 
-![Status](https://img.shields.io/badge/status-production_gated-FF9800)
-![Platform](https://img.shields.io/badge/platform-Workday-blue)
-![Reports](https://img.shields.io/badge/reports-Advanced%20%7C%20Matrix%20%7C%20Composite-1976D2)
-![Exports](https://img.shields.io/badge/export-Microsoft%20Excel-217346)
-![Timeline](https://img.shields.io/badge/duration-4%20weeks-orange)
+This project is an interactive payroll review dashboard for finding issues before payroll approval. It brings payroll cost, overtime, missing time, deduction, and tax information into one place, then lets an analyst filter, investigate, acknowledge, and export the results.
 
-## Project Overview
+The repository contains two connected pieces:
 
-The Workday Payroll Exception & Reporting Dashboard is a portfolio-ready reporting application and documentation package for a Workday-native payroll solution. It defines advanced reports, calculated fields, KPI logic, a composite dashboard, testing artifacts, UAT scenarios, defect tracking, assumptions, and sample outputs for payroll exception management.
+- A React dashboard that presents KPIs, charts, detailed reports, worker drill-downs, and Excel exports.
+- A Node.js backend that handles authentication, role-based data scope, Workday RaaS/API requests, audit events, workflow actions, and protected exports.
 
-Payroll managers often lack a single, reliable view of payroll exceptions before approval. Missing time, unexpected overtime, failed deductions, tax issues, and payroll cost variances may live in separate reports or manual spreadsheets. This project solves that problem with a centralized Workday dashboard that detects exceptions automatically, summarizes payroll readiness, and provides drill-down paths to detailed reports and resolution workflows.
+It also includes the Workday report specifications, calculated-field designs, test plans, UAT material, and production-readiness runbooks behind the dashboard.
 
-## Tech Stack
+> The included data and local accounts are for demonstration. A real deployment still needs approved Entra ID configuration, Workday endpoints, tenant security testing, reconciliation, performance evidence, and business sign-off.
 
-- Workday Advanced Reports
-- Workday Matrix Reports
-- Workday Composite Reports
-- Workday Calculated Fields
-- Workday Time Tracking, Payroll, Benefits, and Tax data sources
-- Microsoft Excel for export and offline analysis
-- Markdown documentation for functional, technical, testing, and portfolio artifacts
-- React, TypeScript, and Vite for the interactive portfolio dashboard
-- Tailwind CSS for responsive dashboard styling
-- Recharts for KPI and trend visualizations
-- TanStack Table for sortable report-style tables
-- Lucide React for dashboard actions and status icons
-- Vitest for calculation and UI behavior tests
-- Playwright for functional and visual browser regression tests
-- Node.js backend proxy for Workday connectivity, Entra identity mapping, RBAC, audit history, and delivery hooks
+## What the Dashboard Covers
 
-## Features
+- Payroll cost and period-over-period variance
+- Payroll completion and readiness
+- Overtime hours, cost, thresholds, and department trends
+- Missing time entries derived from schedules, submissions, leave, and holidays
+- Failed, over, under, and arrears deduction exceptions
+- Tax form, withholding, and jurisdiction exceptions
+- Role-scoped worker details and payroll actions
+- Formatted Excel exports for the current filtered view
 
-- Real-time payroll cost summary by department, pay group, and period
-- Automated overtime detection and alerting for workers over 40 hours per week
-- Missing time entry identification before payroll close
-- Deduction exception tracking for failed, over-deducted, under-deducted, and arrears cases
-- Tax withholding compliance monitoring for missing, failed, over-withheld, under-withheld, and jurisdiction issues
-- Payroll approval readiness center with blocker checklist, owner actions, and readiness export
-- Single composite dashboard with shared prompts and drill-down capability
-- KPI cards for payroll cost, workers with exceptions, missing time, overtime, and payroll completion
-- Matrix view for overtime trends across departments
-- Formatted `.xlsx` export for Finance, audit, and offline analysis
-- Security, UAT, performance, and defect documentation for production readiness
-- Interactive dashboard shell with role-based presentation lens for payroll, HRIS, reporting, systems, and consulting roles
-- Dynamic KPI threshold controls for live presentation scenarios and configurable alert logic
-- CSV upload mode for replacing sample data with Workday-style report exports and recalculating dashboard results
-- Workday response schema validation, normalization, retry, and bounded same-origin pagination
-- Microsoft Entra Easy Auth integration path with app-role mapping and backend row security
-- Server-generated proxy-mode Excel exports with permission checks and audit events
-- Persistent acknowledgement/action audit trail, real Workday time-entry links, and configurable Inbox task creation
-- Live configuration validation and durable multi-instance audit API support
-- Saved report links and scheduled Excel delivery with provider and final-status receipts
-- Correlated JSON logs, authenticated operational metrics, alert hooks, rotation overlap, and production operations evidence gates
-- Gzip/immutable asset delivery, enforced bundle budgets, and throttled browser performance measurements
-- Production evidence gate for tenant validation, security, reconciliation, performance, and UAT approval
+The interface is useful for Payroll Analysts, HRIS Analysts, Workday Reporting Analysts, Payroll Systems Analysts, Functional Analysts, Integration Analysts, Operations Analysts, and Workday Consultants.
 
-## Interactive Dashboard App
-
-This repository now includes the start of a coded dashboard application that presents the Workday payroll reporting solution as an interview-ready portfolio experience.
-
-The app is designed for these target roles:
-
-- Workday Payroll Analyst
-- HRIS Analyst
-- Workday Functional Analyst
-- Payroll Systems Analyst
-- Workday Reporting Analyst
-- Workday Consultant
-- Workday Integration Analyst
-- HR Systems Analyst
-- Payroll Operations Analyst
-
-Day 1 implementation includes:
-
-- React + TypeScript + Vite project scaffold
-- Global dashboard header with Workday-style prompts
-- Overview tab with KPI cards and exception summary
-- Role lens selector for tailoring the presentation to different analyst and consultant roles
-- Tab shell for Payroll Costs, Overtime, Missing Time, Deductions, Tax Issues, and Documentation
-- Responsive layout foundation for desktop, tablet, and mobile views
-
-Day 3 implementation adds:
-
-- Fully controlled shared prompts for Pay Period, Company, Pay Group, Department, and worker/report search
-- Filter summary bar with current prompt chips and last refreshed timestamp
-- Refresh interaction with loading feedback
-- Shared filter logic applied to KPI cards, exception badges, and dashboard states
-- Empty-state handling for no matching workers and no exceptions
-
-Day 4 implementation adds:
-
-- Executive KPI cards driven by calculated sample payroll data
-- Payroll Completion KPI with progress indicator and threshold context
-- Period-over-period payroll cost and overtime trend cues
-- Top exception highlight cards for overtime, missing time, deductions, and tax issues
-- Test coverage for executive highlight sorting and values
-
-Day 5 implementation adds:
-
-- Payroll cost trend chart across six pay periods
-- Clickable exception breakdown donut chart that routes to detail report tabs
-- Four-week overtime trend matrix by department
-- Chart-ready calculation helpers and overtime trend fixtures
-- Build chunking for chart dependencies
-
-Day 6 implementation adds:
-
-- Workday-style detail report tabs for Payroll Costs, Overtime, Missing Time, Deductions, and Tax Issues
-- Reusable TanStack Table component with sorting, pagination, row counts, and report summaries
-- Report row builders that join worker, payroll, time, deduction, and tax sample data
-- Payroll cost totals, overtime totals, missing day totals, deduction variance, arrears balance, and tax variance summaries
-- Documentation tab linking the interactive dashboard back to the Workday report specifications
-
-Day 7 implementation adds:
-
-- Worker drill-down panel from any report row
-- Joined worker snapshot showing payroll, time, deduction, and tax context
-- Action workflow buttons for manager notification, time entry review, issue acknowledgement, and worker snapshot export
-- Formatted Excel export for each current filtered report view with audit metadata
-- Test coverage for CSV generation and worker snapshot joins
-
-Day 8 implementation adds:
-
-- Expanded role-based presentation lens for Workday Payroll Analyst, HRIS Analyst, Functional Analyst, Payroll Systems Analyst, Reporting Analyst, Consultant, Integration Analyst, HR Systems Analyst, and Payroll Operations Analyst roles
-- Interview-ready pitch, proof points, role-specific metrics, workflow steps, and quick tab navigation for each role
-- Dynamic KPI threshold controls for completion, exception, missing time, overtime, and payroll cost variance rules
-- Reusable KPI card calculation helper so dashboard severity, targets, and trend messaging recalculate from current thresholds
-- Test coverage proving KPI severity changes when presentation thresholds are modified
-
-Day 9 implementation adds:
-
-- Dependency vulnerability audit and remediation for the Vite/esbuild test tooling chain
-- Static source scan for unsafe browser APIs and secret-like patterns
-- Accessibility and responsive QA checklist for the dashboard controls, tabs, tables, cards, and exports
-- Documented validation coverage for KPI calculations, report rows, CSV export, and worker drill-down snapshots
-
-Day 10 implementation adds:
-
-- Portfolio-ready project status and final README polish
-- Final QA/security audit document for recruiter, hiring manager, and stakeholder review
-- Production build, test, and local preview verification after dependency remediation
-
-Real-time data extension adds:
-
-- Sample Data and Uploaded Data modes
-- CSV upload cards for Workers, Payroll Results, Time Entries, Deduction Results, and Tax Results
-- Validation messages for missing columns and invalid rows
-- Active data bundle used by filters, KPI cards, charts, report tabs, exports, and worker drill-downs
-- Derived KPI history and overtime trend rows from uploaded payroll/time data
-- Role-scoped Workday RaaS/API backend proxy integration
-
-Production hardening adds:
-
-- Upload file validation for CSV type, empty files, and maximum file size
-- True `.xlsx` workbook generation with lazy-loaded export code
-- Runtime error boundary with reset path
-- Production readiness checklist separating portfolio readiness from Workday tenant go-live tasks
-
-Backend proxy and authentication adds:
-
-- Node backend proxy for Workday RaaS/API report endpoints
-- Microsoft Entra Easy Auth principal and app-role mapping for production
-- Signed HTTP-only local sessions for development only
-- Demo users for local role-security testing
-- Backend role-based filtering by department, company, and pay group
-- Worker-detail masking for finance/read-only style roles
-- Frontend Backend Proxy data mode that loads scoped data through `/api`
-- Export authorization enforcement, persistent audit APIs, Workday task action hook, and receipt-tracked Excel delivery webhook
-
-## Production Status
-
-The application code, automated tests, build, deployment container, and production control adapters are implemented. The project is portfolio-ready but is not approved for live payroll data. Release remains blocked by the code-remediation items below and by external tenant validation, security testing, payroll/GL reconciliation, performance testing, UAT, observability, restore, rotation, disaster recovery, and penetration-testing approvals. Record genuine approvals using the process in `testing/Production_Approval_Runbook.md`, then run `npm run validate:production`.
-
-### Current Code Audit
-
-The latest repository remediation review was completed on October 7, 2026 and produced the following baseline:
-
-| Check | Result |
-|---|---|
-| Unit tests | 88 of 88 passed across 17 test files |
-| Functional browser security tests | 5 of 5 passed |
-| Production build | Passed, including TypeScript compilation and bundle budgets |
-| Production dependency audit | 0 known vulnerabilities (`npm audit --omit=dev`) |
-| Build-tool dependency audit | 7 Tailwind 3 transitive advisories; Tailwind 4 migration required |
-| Git secret history scan | No committed real `.env` files or high-confidence credential formats found |
-| Audit findings | 11 remediated and regression-tested |
-
-Completed remediation:
-
-| Finding | Resolution |
-|---|---|
-| RBAC failed open for unknown roles | Unknown roles and inherited mapping properties are rejected; live role mappings accept only supported application roles. |
-| Workflow actions lacked capability and replay controls | Server capabilities, UI visibility, duplicate-event reuse, deterministic Inbox idempotency keys, and per-user action rate limits are enforced. |
-| Docker used end-of-life Node.js 20 | Build and runtime stages now use Node.js 24 LTS. |
-| Container ran as root and sent local artifacts in its build context | The runtime uses the built-in `node` user, while `.dockerignore` excludes secrets, Git metadata, local data, dependencies, and test artifacts. |
-| Login throttling trusted arbitrary forwarding headers and grew without a bound | Forwarded addresses are accepted only from configured trusted proxy sockets, usernames are normalized, and failed-login tracking is capped at 5,000 keys. |
-| Upstream Workday and audit responses were unbounded | Workday pages are capped at 10 MiB, datasets at 100,000 rows, and audit responses at 5 MiB before JSON parsing; each limit is configurable. |
-| Invalid secret-rotation limits bypassed age validation | `SECRET_ROTATION_MAX_AGE_DAYS` must now be a positive integer before timestamp age is evaluated. |
-| Security tests stopped below the HTTP authorization layer | Direct HTTP tests now cover denied and allowed actions, Entra mapping failures, action throttling, Inbox replay, and delivery trigger and receipt authorization. |
-| Environment-file ignore rules covered only two names | Git now ignores every `.env*` variant except the intentionally tracked `.env.example`, plus local AWS, Codex, and upload artifacts. |
-| Cookie-authenticated writes lacked explicit CSRF verification | Browser write requests must send a non-simple verification header; webhook receipts remain separately protected by their shared secret. |
-| Client error boundaries displayed exception details | Runtime exception messages and component stacks are no longer retained or rendered to users. |
-
-The following previously identified items remain before production deployment:
-
-| Priority | Required remediation |
-|---|---|
-| Medium | Migrate Tailwind CSS 3 to 4 and run visual regression tests to remove seven build-tool-only transitive advisories. Production runtime dependencies currently have zero known vulnerabilities. |
-
-Code cleanup identified during the same review is intentionally separate from security remediation: remove the unused CSV download implementation and unused fixture barrel exports, share the duplicated server-side missing-date calculation, and move browser-only packages out of runtime production dependencies. Client and server workbook generation remain separate by design because proxy-mode exports must be rebuilt from server-scoped data.
-
-Hosted deployment and visual QA adds:
-
-- Full-stack Node.js hosting decision for real Workday RaaS/API data use
-- Portable Dockerfile for Node-capable deployment platforms
-- Production cookie and host binding settings for secure hosted runtime
-- Playwright browser visual regression tests for desktop, mobile, and backend proxy role scoping
-
-Live tenant go-live pack adds:
-
-- Workday tenant build runbook for calculated fields, reports, dashboard tabs, prompts, and migration
-- Production security testing plan for role, row, field, export, direct-link, and session validation
-- Payroll and GL reconciliation plan with tolerance rules and sign-off template
-- Performance testing plan for dashboard load, prompt changes, exports, and backend proxy calls
-- UAT sign-off packet for Payroll, HRIS, Finance, Benefits, Tax, Security, and Product Owner approval
-
-## Project Structure
+## How the Application Flows
 
 ```text
-workday-payroll-exception-dashboard/
-|-- README.md
-|-- LICENSE
-|-- Dockerfile
-|-- package.json
-|-- playwright.config.ts
-|-- index.html
-|-- vite.config.js
-|-- tailwind.config.js
-|-- assets/
-|   |-- architecture.png
-|   |-- workflow.png
-|   `-- screenshots/
-|-- calculated-fields/
-|   |-- Payroll_Status_CF.md
-|   |-- Overtime_Hours_CF.md
-|   |-- Missing_Time_CF.md
-|   |-- Deduction_Check_CF.md
-|   `-- Tax_Exception_CF.md
-|-- dashboards/
-|   |-- Composite_Dashboard.md
-|   |-- Dashboard_Layout.md
-|   `-- KPI_Definitions.md
-|-- docs/
-|   |-- Project_Overview.md
-|   |-- Business_Requirements.md
-|   |-- Functional_Design.md
-|   |-- Technical_Design.md
-|   |-- Assumptions.md
-|   |-- Real_Time_Data_Integration.md
-|   |-- Backend_Proxy_Authentication.md
-|   |-- Hosting_Deployment_Decision.md
-|   |-- Production_Operations_Runbook.md
-|   |-- Workday_Tenant_Build_Runbook.md
-|   |-- Production_Readiness_Checklist.md
-|   `-- Lessons_Learned.md
-|-- e2e/
-|   |-- dashboard.visual.spec.ts
-|   `-- dashboard.visual.spec.ts-snapshots/
-|-- report-design/
-|   |-- Business_Objects.md
-|   |-- Data_Sources.md
-|   |-- Filters.md
-|   |-- Prompts.md
-|   |-- Report_Matrix.md
-|   `-- Security.md
-|-- reports/
-|   |-- Dashboard_Overview.md
-|   |-- Payroll_Cost_Report.md
-|   |-- Overtime_Report.md
-|   |-- Missing_Time_Entries_Report.md
-|   |-- Deduction_Exception_Report.md
-|   `-- Tax_Exception_Report.md
-|-- samples/
-|   |-- sample-payroll-cost.xlsx
-|   |-- sample-overtime.xlsx
-|   |-- sample-tax-report.xlsx
-|   `-- dashboard-screenshots/
-|-- src/
-|   |-- App.tsx
-|   |-- main.tsx
-|   |-- components/
-|   |-- data/
-|   |-- styles/
-|   `-- types/
-|-- server/
-|   |-- demoData.js
-|   |-- rbac.js
-|   `-- workdayProxy.js
-`-- testing/
-    |-- Test_Cases.md
-    |-- UAT_Scenarios.md
-    |-- Defect_Log.md
-    |-- Dashboard_QA_Security_Audit.md
-    |-- Security_Testing_Plan.md
-    |-- Payroll_GL_Reconciliation_Plan.md
-    |-- Performance_Testing_Plan.md
-    `-- UAT_Signoff_Packet.md
+Choose a data source
+        |
+        +-- Sample data: synthetic records included in the project
+        +-- Uploaded data: CSV exports selected in the browser
+        +-- Backend proxy: authenticated Workday RaaS/API or scoped demo data
+        |
+Validate and normalize rows
+        |
+Apply authenticated role scope when proxy mode is used
+        |
+Apply pay period, company, pay group, department, and search filters
+        |
+Calculate KPIs, trends, exception counts, and report rows
+        |
+Review overview, readiness, cost, overtime, missing-time, deduction, and tax tabs
+        |
+Open worker details, acknowledge issues, create Workday tasks, or export Excel
 ```
 
-## Reports Built
+The **Presentation Lens** helps explain the dashboard from different job perspectives. It does not grant access. Actual permissions come from the authenticated backend role.
 
-| Report | Type | Purpose |
-| --- | --- | --- |
-| Payroll Exception Dashboard - Overview | Workday Advanced Report, summary landing page | Provides KPI cards, exception counts, top highlights, status indicators, and navigation to detailed reports. |
-| Payroll Cost Summary Report | Workday Advanced Report | Breaks down payroll cost by department, pay group, worker, and period, including gross pay, net pay, deductions, taxes, employer costs, and variance. |
-| Overtime Hours Exception Report | Workday Advanced Report with Matrix option | Identifies non-exempt workers with overtime, calculates overtime cost, applies threshold alerts, and shows department trends. |
-| Missing Time Entries Exception Report | Workday Advanced Report | Detects workers missing required time entries by comparing schedules, submitted time, and approved leave. |
-| Deduction Exception Report | Workday Advanced Report | Tracks failed deductions, over/under deductions, deduction variance, and arrears balances. |
-| Tax Exception Report | Workday Advanced Report | Monitors withholding exceptions, tax variance, expired or missing elections, and jurisdiction issues. |
-| Payroll Exception & Reporting Composite Dashboard | Workday Composite Report | Combines all reports into a tabbed dashboard with shared prompts, tab badge counts, drill-downs, and export options. |
+## Run It Locally
 
-## Calculated Fields
+### Requirements
 
-| Calculated Field | Purpose | Core Logic |
-| --- | --- | --- |
-| `CF_Payroll_Status` | Consolidates payroll processing state for dashboard and Payroll Cost Report. | Returns Error, Pending, Complete, or Not Started based on payroll result status, time entry completeness, deduction failures, and tax exceptions. |
-| `CF_Overtime_Hours` | Calculates overtime for eligible workers. | Returns overtime hours for non-exempt workers based on weekly threshold, eligible time types, and state-specific daily overtime rules. |
-| `CF_Missing_Time_Flag` | Identifies workers with missing required time entries. | Compares expected scheduled work days to submitted or approved time entry days, excluding approved PTO, holidays, and leave. |
-| `CF_Missing_Time_Days` | Counts missing time entry days. | Returns the number of scheduled days without submitted or approved time entries after exclusions. |
-| `CF_Deduction_Exception` | Classifies deduction issues. | Returns Failed, Over-Deducted, Under-Deducted, Arrears, or None based on expected amount, actual amount, variance, and arrears balance. |
-| `CF_Deduction_Variance` | Quantifies deduction difference. | Calculates actual deduction amount minus expected deduction amount. |
-| `CF_Tax_Exception` | Classifies payroll tax issues. | Returns tax exception categories such as No Withholding, Missing Tax Election, Expired Tax Form, Multi-State Issue, Excess Withholding, Under Withholding, or None. |
-| `CF_Tax_Variance` | Quantifies tax withholding difference. | Calculates actual tax withheld minus expected tax withholding. |
+- Node.js 24
+- npm
+- A current Chrome or Edge browser
 
-## Dashboard
+### 1. Install dependencies
 
-The composite dashboard gives payroll stakeholders a single-pane-of-glass view of payroll readiness. It includes an Overview tab and detail tabs for Payroll Costs, Overtime, Missing Time, Deductions, and Tax Issues.
+From the repository folder:
 
-Primary dashboard KPIs:
-
-- Total Payroll Cost with prior-period trend
-- Workers with Exceptions
-- Missing Time Entries
-- Overtime Hours and Overtime Cost
-- Payroll Completion Rate
-- Exception Rate
-- Overtime Cost Ratio
-- Deduction Failure Rate
-- Tax Exception Count
-- Days to Payroll Deadline
-
-The dashboard uses shared prompts for Pay Period, Company, Pay Group, and Department. Each tab includes relevant grouping, filtering, row limits, drill-downs, and Excel export behavior.
-
-## Screenshots and Samples
-
-This repository is documentation-first and does not include live Workday tenant screenshots. Placeholder descriptions for portfolio screenshots are documented in [docs/Assumptions.md](docs/Assumptions.md), with the intended storage location at `samples/dashboard-screenshots/`.
-
-Recommended screenshot placeholders:
-
-- [Main Dashboard Overview](samples/dashboard-screenshots/)
-- [Payroll Cost Report](samples/dashboard-screenshots/)
-- [Overtime Report](samples/dashboard-screenshots/)
-- [Missing Time Entries Report](samples/dashboard-screenshots/)
-- [Deduction Exception Report](samples/dashboard-screenshots/)
-- [Tax Exception Report](samples/dashboard-screenshots/)
-- [Composite Dashboard Tab View](samples/dashboard-screenshots/)
-- [Excel Export Sample](samples/dashboard-screenshots/)
-- [Filter and Prompt Configuration](samples/dashboard-screenshots/)
-- [Mobile or Responsive View](samples/dashboard-screenshots/)
-
-Sample Excel workbooks:
-
-- [sample-payroll-cost.xlsx](samples/sample-payroll-cost.xlsx)
-- [sample-overtime.xlsx](samples/sample-overtime.xlsx)
-- [sample-tax-report.xlsx](samples/sample-tax-report.xlsx)
-
-## Duration
-
-4 weeks
-
-## Role
-
-Workday Report Developer / Functional Consultant
-
-Responsibilities covered:
-
-- Business requirements interpretation
-- Workday report specification
-- Calculated field design
-- Dashboard layout and KPI definition
-- Security and prompt design
-- Testing and UAT documentation
-- Defect logging and final project review
-
-## How to Use This Repository
-
-Start here:
-
-1. Read [docs/Project_Overview.md](docs/Project_Overview.md) for project context.
-2. Review [docs/Business_Requirements.md](docs/Business_Requirements.md) and [docs/Functional_Design.md](docs/Functional_Design.md) for scope and business requirements.
-3. Use [report-design/](report-design/) for data sources, business objects, prompts, filters, matrix design, and security design.
-4. Open [calculated-fields/](calculated-fields/) for reusable Workday calculated field specifications.
-5. Review [reports/](reports/) for detailed Workday report specifications.
-6. Review [dashboards/](dashboards/) for composite dashboard, layout, and KPI definitions.
-7. Use [testing/](testing/) for QA test cases, UAT scenarios, and defect tracking.
-8. Review [testing/Dashboard_QA_Security_Audit.md](testing/Dashboard_QA_Security_Audit.md) for the final dashboard QA and vulnerability audit summary.
-9. See [samples/](samples/) for sample exports and portfolio screenshot placeholder location.
-10. Read [docs/Assumptions.md](docs/Assumptions.md) and [docs/Lessons_Learned.md](docs/Lessons_Learned.md) for final review, constraints, risks, and retrospective notes.
-11. Review [docs/Real_Time_Data_Integration.md](docs/Real_Time_Data_Integration.md) for CSV upload templates and future Workday RaaS/API design.
-12. Review [docs/Backend_Proxy_Authentication.md](docs/Backend_Proxy_Authentication.md) for backend proxy, authentication, and RBAC setup.
-13. Review [docs/Hosting_Deployment_Decision.md](docs/Hosting_Deployment_Decision.md) for the selected hosting pattern.
-14. Review [docs/Workday_Tenant_Build_Runbook.md](docs/Workday_Tenant_Build_Runbook.md) for real tenant build and migration steps.
-15. Review [testing/Security_Testing_Plan.md](testing/Security_Testing_Plan.md) for production role-security validation.
-16. Review [testing/Payroll_GL_Reconciliation_Plan.md](testing/Payroll_GL_Reconciliation_Plan.md) for payroll register and GL tie-out.
-17. Review [testing/Performance_Testing_Plan.md](testing/Performance_Testing_Plan.md) for production-scale timing tests.
-18. Review [testing/UAT_Signoff_Packet.md](testing/UAT_Signoff_Packet.md) for final business approval.
-19. Review [docs/Production_Readiness_Checklist.md](docs/Production_Readiness_Checklist.md) for coded-dashboard readiness and Workday tenant go-live requirements.
-20. Review [docs/Dashboard_App_Build_Plan.md](docs/Dashboard_App_Build_Plan.md) for the day-wise coded dashboard implementation plan.
-
-Run the dashboard locally:
-
-```bash
-npm install
-npm run dev
+```powershell
+npm ci
 ```
 
-Run the backend proxy locally:
+### 2. Start the backend
 
-```bash
+Open one terminal and run:
+
+```powershell
 npm run proxy
 ```
 
-Use proxy mode during development:
+The backend starts at [http://127.0.0.1:8787](http://127.0.0.1:8787).
 
-1. Start `npm run proxy` in one terminal.
-2. Start `npm run dev` in another terminal.
-3. Sign in from the dashboard's Authentication and Role Security panel.
-4. Click `Load Proxy Data`.
+### 3. Start the dashboard
 
-Build the dashboard:
+Open a second terminal and run:
 
-```bash
-npm run build
+```powershell
+npm run dev
 ```
 
-Run the production-style local server after building:
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173).
 
-```bash
+The dashboard can display sample data without the backend, but login, role-scoped proxy data, protected actions, and server-generated exports require both processes.
+
+### 4. Use a local demo account
+
+| User | Password | What it demonstrates |
+|---|---|---|
+| `payroll.admin` | `PayrollDemo123!` | Full payroll view, exports, acknowledgements, and actions |
+| `finance.analyst` | `FinanceDemo123!` | Finance-oriented scoped access with restricted payroll actions |
+| `operations.manager` | `ManagerDemo123!` | Operations-only worker scope and restricted export access |
+
+These accounts are disabled as a production authentication strategy. Production mode expects Microsoft Entra ID unless an explicit emergency override is configured.
+
+## Use the Dashboard
+
+### Sample Data
+
+Sample Data is active when the dashboard first opens. Use it to explore every KPI, report tab, chart, threshold, drill-down, and presentation lens without uploading files.
+
+### Uploaded Workday Exports
+
+1. Scroll to **Dashboard controls**.
+2. Find the **Data Source** panel.
+3. Upload one or more CSV files for Workers, Payroll Results, Time Entries, Deduction Results, or Tax Results.
+4. Review any validation messages.
+5. The dashboard switches to **Uploaded Data** after a valid upload.
+6. KPIs, filters, charts, reports, and worker details recalculate immediately.
+7. Select **Clear Uploads** to return to sample data.
+
+Uploaded files stay in browser memory and are not mixed with sample records. Missing datasets remain empty. Upload Workers when you need worker names, departments, managers, and report joins.
+
+Required columns and example CSV rows are documented in [Real-Time Data Integration](docs/Real_Time_Data_Integration.md).
+
+### Backend Proxy Data
+
+1. Start both local processes.
+2. Sign in from the **Authentication and Role Security** panel.
+3. Select **Load Proxy Data**.
+4. The backend authenticates the user and applies company, department, and pay-group scope.
+5. If Workday URLs are configured, the server loads Workday data. Otherwise it returns role-scoped demonstration data.
+6. Select **Refresh** to fetch the active proxy data again.
+
+Raw Workday credentials never belong in the browser. The backend retrieves, validates, limits, normalizes, and scopes Workday responses before returning data to React.
+
+## Production-Style Local Run
+
+Build the frontend and serve it through the Node backend:
+
+```powershell
+npm run build
 npm start
 ```
 
-Validate resolved production settings before startup:
+Open [http://127.0.0.1:8787](http://127.0.0.1:8787).
 
-```bash
+This is the closest local match to the deployed container. The build also copies the Markdown report specifications into `dist/reports` so links in the Documentation tab work after deployment.
+
+## Configuration
+
+Local sample and demo-proxy use works without an `.env` file. For custom settings, create one from the example:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+The backend loads `.env` automatically. Never commit it. Keep real Workday, Entra, webhook, monitoring, and audit credentials in an approved secret store.
+
+The most important settings are:
+
+| Setting | Purpose |
+|---|---|
+| `AUTH_MODE` | `local` for development or `azure_easy_auth` for production |
+| `SESSION_SECRET` | Signs backend sessions; use a strong secret-store value |
+| `DEPLOYMENT_PROFILE` | `portfolio` for synthetic data or `live` for real integrations |
+| `WORKDAY_*_URL` | RaaS/API endpoints for workers, payroll, time, deductions, and tax |
+| `WORKDAY_BEARER_TOKEN` | Preferred backend credential for Workday requests |
+| `ENTRA_ROLE_MAPPINGS_JSON` | Maps Entra application roles to dashboard roles |
+| `ENTRA_USER_SCOPES_JSON` | Assigns allowed departments, companies, and pay groups |
+| `AUDIT_STORE_*` | Configures local JSONL or durable audit storage |
+| `WORKDAY_INBOX_TASK_URL` | Enables real Workday Inbox task creation |
+| `REPORT_DELIVERY_*` | Controls scheduled Excel delivery and delivery receipts |
+
+See [.env.example](.env.example) for every supported value and [Backend Proxy Authentication](docs/Backend_Proxy_Authentication.md) for the security model.
+
+Before a live deployment, run:
+
+```powershell
 npm run validate:config
 npm run validate:production
 ```
 
-Run browser visual regression tests:
+`validate:production` is supposed to fail until authorized evidence and approvals are recorded. Do not replace pending records with invented approvals.
 
-```bash
+## Workday Connection Flow
+
+For a real tenant:
+
+1. Build the required Workday Advanced and Matrix reports.
+2. Enable the approved reports as web services.
+3. Create a least-privilege Integration System User or approved OAuth client.
+4. Configure the five `WORKDAY_*_URL` values and backend credentials in the host secret store.
+5. Configure Entra authentication, role mappings, and user scopes.
+6. Run `npm run validate:config` in the target environment.
+7. Test each role with real tenant security.
+8. Complete payroll/GL reconciliation, volume testing, UAT, operational exercises, and penetration testing.
+9. Record genuine evidence with `npm run evidence:record`.
+10. Run `npm run validate:production` before release.
+
+The detailed tenant sequence is in [Workday Tenant Build Runbook](docs/Workday_Tenant_Build_Runbook.md).
+
+## Testing
+
+```powershell
+# Unit, calculation, security, and server tests
+npm test
+
+# TypeScript compilation, production bundle, budget, and report-document copy
+npm run build
+
+# Authentication, authorization, export, workflow, and link checks
+npm run test:functional
+
+# Desktop and mobile screenshot comparisons
 npm run test:visual
-```
 
-Run bundle and throttled network performance checks:
-
-```bash
-npm run check:bundle
+# Throttled browser performance checks
 npm run test:performance
+
+# Production runtime dependency audit
+npm audit --omit=dev --audit-level=low
 ```
 
-Refresh approved screenshot baselines after intentional visual changes:
+Only run `npm run test:visual:update` after reviewing an intentional UI change. It replaces approved screenshot baselines.
 
-```bash
-npm run test:visual:update
+## Common Problems
+
+### "Backend proxy is not running"
+
+Start `npm run proxy` in a separate terminal and keep it running while using the Vite dashboard.
+
+### Port 5173 or 8787 is already in use
+
+Stop the earlier Node process or terminal session before starting another instance.
+
+### Login fails repeatedly
+
+Confirm the demo username and password exactly. Login attempts are rate-limited; wait for the local lockout window to expire after repeated failures.
+
+### An upload is rejected
+
+Use CSV format, keep the file below 5 MB, include the required headers, and use ISO dates such as `2026-09-15`. The validation panel identifies missing columns and invalid rows.
+
+### Uploaded reports are empty
+
+Check that all related datasets use the same Employee ID and Pay Period values. Upload the Workers dataset for names, departments, managers, and organization filters.
+
+### The build warns about a large Excel chunk
+
+ExcelJS is loaded only when export is used. The warning is expected, and the project's enforced initial-load and lazy-chunk budgets still determine whether the build passes.
+
+## Project Structure
+
+```text
+src/                 React dashboard, components, calculations, uploads, and exports
+server/              Authentication, RBAC, Workday proxy, audit, actions, and delivery
+e2e/                 Playwright functional, visual, and performance tests
+reports/             Workday report specifications
+calculated-fields/   Calculated-field definitions used by the reports
+dashboards/          Dashboard layout, composite report, and KPI specifications
+report-design/       Report inventory, matrix, security, and design material
+testing/             Test cases, UAT, defects, and production evidence plans
+docs/                Architecture, runbooks, assumptions, and project decisions
+samples/             Example Excel outputs and screenshot guidance
+scripts/             Build budgets and production/configuration evidence checks
 ```
 
-## Production Readiness Notes
+Start with these documents when reviewing the project:
 
-Before implementing this design in a live Workday tenant:
+- [Project Overview](docs/Project_Overview.md)
+- [Business Requirements](docs/Business_Requirements.md)
+- [Technical Design](docs/Technical_Design.md)
+- [Real-Time Data Integration](docs/Real_Time_Data_Integration.md)
+- [Production Readiness Checklist](docs/Production_Readiness_Checklist.md)
+- [Dashboard QA and Security Audit](testing/Dashboard_QA_Security_Audit.md)
 
-- Resolve every open item in the Current Code Audit section and rerun the unit, build, dependency, security, and browser test suites.
-- Set `DEPLOYMENT_PROFILE=live`; configure Entra Easy Auth, all Workday endpoints, Inbox actions, delivery, and durable audit storage through the host secret manager.
-- Require `/api/readiness` to return `200` before routing traffic.
-- Validate all data sources in the target tenant.
-- Confirm payroll, time tracking, benefits, tax, and organization security domains.
-- Build and test calculated fields independently.
-- Reconcile report totals to payroll register and source reports.
-- Test row-level security, drill-downs, saved links, and Excel exports.
-- Performance-test with realistic worker and payroll-result volumes.
-- Complete UAT sign-off with Payroll, HR, Finance, Benefits, Tax, and Security stakeholders.
+## Security and Data Handling
 
-## Repository Status
+- Use synthetic data for public demonstrations.
+- Treat Workday payroll exports as confidential information.
+- Never commit `.env` files, credentials, tokens, real employee data, or production evidence containing secrets.
+- Keep Workday requests and exports behind backend authentication and role checks.
+- Use HTTPS, secure cookies, Entra ID, durable audit storage, centralized monitoring, and an approved secret manager in production.
+- A passing local build does not replace tenant security testing or business approval.
 
-This repository is a completed documentation and coded portfolio artifact. It is designed to demonstrate Workday reporting analysis, dashboard design, calculated field planning, QA/UAT documentation, payroll operations understanding, interactive dashboard delivery, and basic dependency vulnerability remediation.
+## Current Status
+
+The dashboard, local proxy, uploads, calculations, exports, tests, documentation links, and production gates are implemented. Local sample and scoped-demo workflows are ready to run.
+
+A live rollout remains intentionally blocked until real Entra and Workday configuration is connected and all required tenant, reconciliation, performance, UAT, operations, recovery, and security evidence is approved.
