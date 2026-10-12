@@ -46,10 +46,15 @@ export function formatVariancePercent(current: number, prior: number): string {
 }
 
 export function formatDateShort(value: string): string {
+  const date = new Date(`${value}T00:00:00`);
+  if (!value || Number.isNaN(date.getTime())) {
+    return "Not available";
+  }
+
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric"
-  }).format(new Date(`${value}T00:00:00`));
+  }).format(date);
 }
 
 export function formatDeadlineCountdown(days: number): string {
