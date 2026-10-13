@@ -62,7 +62,9 @@ export function formatDeadlineCountdown(days: number): string {
     return "Due today";
   }
 
-  return days > 0 ? `${days} days remaining` : `${Math.abs(days)} days overdue`;
+  const count = Math.abs(days);
+  const unit = count === 1 ? "day" : "days";
+  return days > 0 ? `${count} ${unit} remaining` : `${count} ${unit} overdue`;
 }
 
 export function getStatusSeverity(status: PayrollStatus): Severity {
