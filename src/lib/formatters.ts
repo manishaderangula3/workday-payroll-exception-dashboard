@@ -28,7 +28,8 @@ export function formatNumber(value: number): string {
 }
 
 export function formatHours(value: number): string {
-  return `${value.toFixed(value % 1 === 0 ? 0 : 1)} hrs`;
+  const formattedValue = value.toFixed(value % 1 === 0 ? 0 : 1);
+  return `${formattedValue} ${Math.abs(value) === 1 ? "hr" : "hrs"}`;
 }
 
 export function formatPercent(value: number): string {

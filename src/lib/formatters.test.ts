@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { formatDateShort, formatDeadlineCountdown } from "./formatters";
+import { formatDateShort, formatDeadlineCountdown, formatHours } from "./formatters";
+
+describe("formatHours", () => {
+  it("uses correct singular and plural abbreviations", () => {
+    expect(formatHours(1)).toBe("1 hr");
+    expect(formatHours(1.5)).toBe("1.5 hrs");
+    expect(formatHours(2)).toBe("2 hrs");
+  });
+});
 
 describe("formatDateShort", () => {
   it("formats valid dates and handles missing or invalid values", () => {
