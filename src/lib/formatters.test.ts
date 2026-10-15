@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { formatDateShort, formatDeadlineCountdown, formatHours } from "./formatters";
+import { formatDateShort, formatDeadlineCountdown, formatHours, formatVariancePercent } from "./formatters";
+
+describe("formatVariancePercent", () => {
+  it("adds a sign only for actual increases", () => {
+    expect(formatVariancePercent(110, 100)).toBe("+10.0% vs prior period");
+    expect(formatVariancePercent(100, 100)).toBe("0.0% vs prior period");
+    expect(formatVariancePercent(90, 100)).toBe("-10.0% vs prior period");
+    expect(formatVariancePercent(100, 0)).toBe("No prior period");
+  });
+});
 
 describe("formatHours", () => {
   it("uses correct singular and plural abbreviations", () => {

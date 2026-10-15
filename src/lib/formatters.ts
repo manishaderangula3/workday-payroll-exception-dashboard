@@ -42,7 +42,7 @@ export function formatVariancePercent(current: number, prior: number): string {
   }
 
   const variance = (current - prior) / prior;
-  const sign = variance >= 0 ? "+" : "";
+  const sign = variance > 0 ? "+" : "";
   return `${sign}${formatPercent(variance)} vs prior period`;
 }
 
