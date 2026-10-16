@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDateShort, formatDeadlineCountdown, formatHours, formatVariancePercent } from "./formatters";
+import { formatDateShort, formatDayCount, formatDeadlineCountdown, formatHours, formatVariancePercent } from "./formatters";
 
 describe("formatVariancePercent", () => {
   it("adds a sign only for actual increases", () => {
@@ -32,5 +32,12 @@ describe("formatDeadlineCountdown", () => {
     expect(formatDeadlineCountdown(1)).toBe("1 day remaining");
     expect(formatDeadlineCountdown(2)).toBe("2 days remaining");
     expect(formatDeadlineCountdown(-1)).toBe("1 day overdue");
+  });
+});
+
+describe("formatDayCount", () => {
+  it("uses correct singular and plural wording", () => {
+    expect(formatDayCount(1)).toBe("1 day");
+    expect(formatDayCount(3)).toBe("3 days");
   });
 });

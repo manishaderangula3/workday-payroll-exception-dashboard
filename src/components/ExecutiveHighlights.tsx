@@ -2,6 +2,7 @@ import { AlertCircle, CalendarClock, Landmark, Timer } from "lucide-react";
 import {
   formatCurrency,
   formatDateShort,
+  formatDayCount,
   formatHours
 } from "../lib/formatters";
 import type { ExecutiveHighlights as ExecutiveHighlightsData } from "../types/dashboard";
@@ -51,7 +52,7 @@ export function ExecutiveHighlights({ highlights }: ExecutiveHighlightsProps) {
                 <p className="text-xs text-slate-500">{worker.department}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-semibold text-slate-900">{worker.missingDays} days</p>
+                <p className="text-sm font-semibold text-slate-900">{formatDayCount(worker.missingDays)}</p>
                 <p className="text-xs text-slate-500">{worker.missingDates.map(formatDateShort).join(", ")}</p>
               </div>
             </li>

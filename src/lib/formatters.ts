@@ -58,14 +58,17 @@ export function formatDateShort(value: string): string {
   }).format(date);
 }
 
+export function formatDayCount(days: number): string {
+  const count = Math.abs(days);
+  return `${count} ${count === 1 ? "day" : "days"}`;
+}
+
 export function formatDeadlineCountdown(days: number): string {
   if (days === 0) {
     return "Due today";
   }
 
-  const count = Math.abs(days);
-  const unit = count === 1 ? "day" : "days";
-  return days > 0 ? `${count} ${unit} remaining` : `${count} ${unit} overdue`;
+  return `${formatDayCount(days)} ${days > 0 ? "remaining" : "overdue"}`;
 }
 
 export function getStatusSeverity(status: PayrollStatus): Severity {
